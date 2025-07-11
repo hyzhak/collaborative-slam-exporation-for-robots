@@ -1,0 +1,48 @@
+version: "3.9"
+services:
+  redis:
+    image: "redis:7-alpine"
+    container_name: saga_redis
+    ports:
+      - "6379:6379"
+
+  db:
+    image: "postgres:15-alpine"
+    container_name: saga_postgres
+    environment:
+      - POSTGRES_DB=sagadb
+      - POSTGRES_USER=sagauser
+      - POSTGRES_PASSWORD=sagapass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  celery_worker:
+    build: .
+    container_name: saga_worker
+    depends_on:
+      - redis
+      - db
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=sagadb
+      - POSTGRES_USER=sagauser
+      - POSTGRES_PASSWORD=sagapass
+    command: celery -A app.celery_app worker --loglevel=info
+
+  flower:
+    image: mher/flower:latest
+    container_name: saga_flower
+    depends_on:
+      - redis
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+
+volumes:
+  pgdata:
