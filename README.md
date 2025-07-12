@@ -96,6 +96,30 @@ All services are defined in `docker-compose.yml` and run together on a single ma
 - Use Flower UI and logs to trace task execution and rollback steps.
 - Inspect the PostgreSQL database to verify state changes and rollbacks.
 
+## Running Integration Tests
+
+Automated integration tests are defined in `docker-compose.test.yaml` and can be run in multiple ways:
+
+1. Using the helper script:
+
+   ```bash
+   ./scripts/integration-tests.sh
+   ```
+
+2. With Podman Compose:
+
+   ```bash
+   podman-compose -f docker-compose.yml -f docker-compose.test.yaml run integration_test
+   ```
+
+3. With Docker Compose:
+
+   ```bash
+   docker-compose -f docker-compose.yml -f docker-compose.test.yaml up --build --exit-code-from integration_test integration_test
+   ```
+
+The tests are located in the `tests/` directory and are mounted into the integration test container. A minimal sanity test is provided as `tests/test_orchestration.py`.
+
 ## Contributing
 
 Contributions are welcome! Please follow the Conventional Commits specification for commit messages.
