@@ -2,21 +2,16 @@
 
 ## Current Work Focus
 
-- Initializing the Memory Bank from the design.md document.
-- Capturing project requirements, architecture, technology, and workflow context.
-- Preparing for implementation: scaffolding docker-compose.yml, Dockerfile, requirements.txt, and Python app structure.
+- Implement event-driven orchestrator: listen to incoming Redis Stream and invoke app/orchestrator.py.
 
 ## Recent Changes
 
-- Added RedisInsight service to docker-compose.yml for Redis Streams visualization; verified running at http://localhost:8001.
-
+- Added RedisInsight service to docker-compose.yml for Redis Streams visualization; verified running at <http://localhost:8001>.
 - Memory Bank files created: projectbrief.md, productContext.md, systemPatterns.md, techContext.md.
 - All core context extracted from design.md and documented in memory-bank/.
 
 ## Next Steps
 
-- Add official open-source Docker container to visualize Redis Streams (no tests required).
-- Implement event-driven orchestrator: listen to incoming Redis Stream and invoke app/orchestrator.py.
 - Refactor app/tasks.py so each Celery task emits its own Redis Stream event.
 - Move orchestrator logic into Celery (e.g. using Canvas) for saga orchestration.
 - For each item, follow TDD:
