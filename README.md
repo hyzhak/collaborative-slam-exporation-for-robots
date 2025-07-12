@@ -67,6 +67,7 @@ All services are defined in `docker-compose.yml` and run together on a single ma
 
 6. **Monitor progress:**  
    Open [http://localhost:5555](http://localhost:5555) to view the Flower UI.
+   Open [http://localhost:8001](http://localhost:8001) to access RedisInsight for visualizing Redis Streams and keys.
 
 ## Project Structure
 

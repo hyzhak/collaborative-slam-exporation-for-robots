@@ -2,6 +2,7 @@
 
 ## Recent Milestones
 
+- Added RedisInsight service for Redis Streams visualization; verified running at http://localhost:8001.
 - Initial implementation of Saga orchestration with Celery, Redis, and PostgreSQL.
 - Added Flower for real-time monitoring of task execution.
 - Docker Compose setup for all core services.
@@ -21,6 +22,10 @@
 
 ## Next Steps
 
-- Expand integration test coverage to include more complex workflows and failure scenarios.
-- Automate test execution in CI/CD pipeline.
-- Continue to update documentation and rules as the project evolves.
+- Scaffold Redis Stream monitor container in docker-compose.yml.
+- Write integration tests for:
+  • Orchestrator trigger on Redis event.
+  • Task event emission.
+  • Orchestrator as Celery Canvas workflow.
+- Execute TDD cycle for each test suite.
+- Update Memory Bank and commit after each feature.

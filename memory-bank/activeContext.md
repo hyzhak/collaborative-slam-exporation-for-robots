@@ -8,14 +8,24 @@
 
 ## Recent Changes
 
+- Added RedisInsight service to docker-compose.yml for Redis Streams visualization; verified running at http://localhost:8001.
+
 - Memory Bank files created: projectbrief.md, productContext.md, systemPatterns.md, techContext.md.
 - All core context extracted from design.md and documented in memory-bank/.
 
 ## Next Steps
 
-- Scaffold infrastructure files (docker-compose.yml, Dockerfile, requirements.txt).
-- Implement Celery app, tasks, and orchestrator logic as described in design.md.
-- Set up Flower UI and verify end-to-end Saga workflow.
+- Add official open-source Docker container to visualize Redis Streams (no tests required).
+- Implement event-driven orchestrator: listen to incoming Redis Stream and invoke app/orchestrator.py.
+- Refactor app/tasks.py so each Celery task emits its own Redis Stream event.
+- Move orchestrator logic into Celery (e.g. using Canvas) for saga orchestration.
+- For each item, follow TDD:
+  1. Write integration tests.
+  2. Run tests (should fail).
+  3. Implement feature.
+  4. Run tests (should pass).
+  5. Update Memory Bank notes.
+  6. Commit changes.
 
 ## Active Decisions and Considerations
 
