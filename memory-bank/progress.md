@@ -2,6 +2,13 @@
 
 ## Recent Milestones
 
+- Event-driven orchestration implemented: orchestrator service now listens to Redis Streams and triggers saga workflows via app/orchestrator_listener.py.
+- Centralized logging configuration (app/logging_config.py) adopted across all services.
+- Saga orchestration logic refactored for event-driven flow and robust compensation (app/orchestrator.py).
+- All saga steps and compensation logic implemented as Celery tasks with improved logging (app/tasks.py).
+- Celery app startup reliability improved (app/celery_app.py waits for Redis).
+- Integration test (tests/test_orchestrator_trigger.py) validates end-to-end event-driven orchestration.
+- docker-compose.yml and docker-compose.test.yaml updated: orchestrator service, RedisInsight, Flower, and integration_test service for CI.
 - Added RedisInsight service for Redis Streams visualization; verified running at http://localhost:8001.
 - Initial implementation of Saga orchestration with Celery, Redis, and PostgreSQL.
 - Added Flower for real-time monitoring of task execution.
@@ -9,13 +16,3 @@
 - Implemented compensation logic for robust rollback on failures.
 - Added optional FastAPI endpoint for triggering Sagas.
 - Refactored orchestrator and tasks for clarity and maintainability.
-
-## Integration Testing and Validation
-
-- Introduced automated integration test workflow using `docker-compose.test.yaml`.
-- Created a dedicated integration test container that depends on all core services.
-- Tests are defined in the `tests/` directory and mounted as a volume into the test container.
-- Added helper script (`scripts/integration-tests.sh`) for running tests locally.
-- Updated documentation (README, memory-bank) to describe test workflow and validation requirements.
-- Established project rule: all code changes must be validated by running the integration test suite before merging or deployment.
-- Added Cline rule file `.clinerules/testing-and-validation.md` to formalize testing and validation guidelines.
