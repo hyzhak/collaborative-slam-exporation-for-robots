@@ -3,5 +3,6 @@ redis==4.5.5
 flower==1.1.0
 fastapi==0.95.2
 uvicorn==0.22.0
+requests==2.31.0
 psycopg2-binary==2.9.6
 SQLAlchemy==1.4.47
