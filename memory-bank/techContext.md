@@ -37,3 +37,14 @@
 - Docker Compose manages service startup order and networking.
 - Flower connects to Redis to visualize task execution.
 - All logs and saga_id values used for traceability and debugging.
+
+## Testing Infrastructure
+
+- Integration tests are defined in the `tests/` directory.
+- Automated integration tests run in a dedicated container using `docker-compose.test.yaml`.
+- Tests can be executed via:
+  - `./scripts/integration-tests.sh` (helper script)
+  - `podman-compose -f docker-compose.yml -f docker-compose.test.yaml run integration_test`
+  - `docker-compose -f docker-compose.yml -f docker-compose.test.yaml up --build --exit-code-from integration_test integration_test`
+- The `tests/` directory is mounted as a volume into the integration test container.
+- All code changes must be validated by running the integration test suite before merging or deployment.

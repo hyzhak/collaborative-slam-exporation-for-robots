@@ -1,30 +1,26 @@
-# Progress
+# Progress Log
 
-## What Works
+## Recent Milestones
 
-- Memory Bank initialized from design.md.
-- All core context files created: projectbrief.md, productContext.md, systemPatterns.md, techContext.md, activeContext.md.
-- Project requirements, architecture, and technical context are clearly documented.
+- Initial implementation of Saga orchestration with Celery, Redis, and PostgreSQL.
+- Added Flower for real-time monitoring of task execution.
+- Docker Compose setup for all core services.
+- Implemented compensation logic for robust rollback on failures.
+- Added optional FastAPI endpoint for triggering Sagas.
+- Refactored orchestrator and tasks for clarity and maintainability.
 
-## What's Left to Build
+## Integration Testing and Validation
 
-- Scaffold infrastructure files: docker-compose.yml, Dockerfile, requirements.txt.
-- Implement Celery app, tasks, and orchestrator logic.
-- Set up Flower UI and verify Saga workflow execution.
-- (Optional) Add FastAPI service for HTTP-triggered orchestration.
+- Introduced automated integration test workflow using `docker-compose.test.yaml`.
+- Created a dedicated integration test container that depends on all core services.
+- Tests are defined in the `tests/` directory and mounted as a volume into the test container.
+- Added helper script (`scripts/integration-tests.sh`) for running tests locally.
+- Updated documentation (README, memory-bank) to describe test workflow and validation requirements.
+- Established project rule: all code changes must be validated by running the integration test suite before merging or deployment.
+- Added Cline rule file `.clinerules/testing-and-validation.md` to formalize testing and validation guidelines.
 
-## Current Status
+## Next Steps
 
-- Project is in the documentation and planning phase.
-- Ready to begin infrastructure and code scaffolding.
-
-## Known Issues
-
-- No implementation or configuration files exist yet.
-- No automated tests or CI/CD setup.
-
-## Evolution of Project Decisions
-
-- Chose orchestration-based Saga pattern for explicit control and compensation.
-- Decided on single Postgres instance for simplicity.
-- Prioritized traceability (saga_id), logging, and monitoring for demonstration and debugging.
+- Expand integration test coverage to include more complex workflows and failure scenarios.
+- Automate test execution in CI/CD pipeline.
+- Continue to update documentation and rules as the project evolves.

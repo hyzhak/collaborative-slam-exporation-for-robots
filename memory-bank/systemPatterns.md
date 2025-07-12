@@ -1,38 +1,28 @@
 # System Patterns
 
-## System Architecture
+## Saga Pattern for Distributed Orchestration
 
-- Orchestration-based Saga pattern with a central orchestrator.
-- Components:
-  - Celery workers (host Saga steps and compensations as tasks)
-  - Saga orchestrator (coordinates task execution and compensation)
-  - Redis broker (Celery message/event stream)
-  - PostgreSQL database (shared state for tasks)
-  - Flower UI (real-time monitoring)
-  - (Optional) FastAPI for HTTP-triggered orchestration
+- Uses the Saga pattern to coordinate a sequence of distributed tasks with compensation logic for failures.
+- Each step is a Celery task; compensating actions are also tasks.
+- Orchestrator coordinates the workflow, tracks state, and triggers compensations as needed.
+- All state changes are persisted in PostgreSQL for traceability and rollback.
 
-## Key Technical Decisions
+## Containerized Microservices
 
-- Use Docker Compose to containerize and manage all services.
-- Use Redis as both broker and result backend for Celery.
-- Use a single Postgres instance for all tasks (simulating service-local state).
-- All communication between components via Docker network.
+- Each component (worker, orchestrator, broker, DB, monitoring) runs in its own Docker container.
+- Docker Compose (or Podman Compose) manages service startup, networking, and environment configuration.
+- Flower provides real-time monitoring of Celery task execution.
 
-## Design Patterns in Use
+## Integration Test Orchestration
 
-- Saga orchestration (centralized control, explicit compensation)
-- Task-based microservice simulation (each Celery task = service action)
-- Compensation pattern for rollback
+- Integration tests are run in a dedicated container defined in `docker-compose.test.yaml`.
+- The integration test container depends on all core services (Redis, DB, Celery worker).
+- The `tests/` directory is mounted as a volume into the integration test container, ensuring tests are always up-to-date with the codebase.
+- Tests are executed using a helper script or directly via Podman Compose or Docker Compose commands.
+- All code changes must be validated by running the integration test suite before merging or deployment.
 
-## Component Relationships
+## Observability and Traceability
 
-- Orchestrator triggers tasks on Celery workers via Redis.
-- Workers update/query Postgres as needed for state.
-- Flower UI connects to Redis to visualize task flow and status.
-- All components interact within a single Docker Compose network.
-
-## Critical Implementation Paths
-
-- Sequential execution of Saga steps with error handling.
-- On failure, orchestrator triggers compensating tasks in reverse order.
-- Logging and saga_id propagation for traceability.
+- Flower UI for real-time task monitoring.
+- All tasks and orchestrator steps log their actions, including saga_id for traceability.
+- PostgreSQL stores workflow state and history for debugging and audit.
