@@ -1,3 +1,7 @@
+from app.logging_config import setup_logging
+
+setup_logging()
+
 import uuid
 import logging
 from app.celery_app import celery_app
@@ -13,27 +17,36 @@ from app.tasks import (
 
 logger = logging.getLogger(__name__)
 
+
 def run_saga(robot_count, area, fail_steps=None):
     """
     fail_steps: optional set/list of step names to force failure for testing, e.g. {"allocate_resources"}
     """
     saga_id = str(uuid.uuid4())[:8]
     fail_steps = set(fail_steps or [])
-    logger.info(f"Saga[{saga_id}]: Starting saga with {robot_count} robots in area '{area}'")
+    logger.info(
+        f"Saga[{saga_id}]: Starting saga with {robot_count} robots in area '{area}'"
+    )
     try:
         # Step 1: Allocate resources
-        res1 = allocate_resources.delay(saga_id, robot_count, fail="allocate_resources" in fail_steps)
+        res1 = allocate_resources.delay(
+            saga_id, robot_count, fail="allocate_resources" in fail_steps
+        )
         result1 = res1.get(timeout=10)
         # Step 2: Plan route
         res2 = plan_route.delay(saga_id, area, fail="plan_route" in fail_steps)
         result2 = res2.get(timeout=10)
         # Step 3: Perform exploration
-        res3 = perform_exploration.delay(saga_id, robot_count, fail="perform_exploration" in fail_steps)
+        res3 = perform_exploration.delay(
+            saga_id, robot_count, fail="perform_exploration" in fail_steps
+        )
         result3 = res3.get(timeout=20)
         # Step 4: Integrate maps
         res4 = integrate_maps.delay(saga_id, fail="integrate_maps" in fail_steps)
         result4 = res4.get(timeout=10)
-        logger.info(f"Saga[{saga_id}]: Completed successfully. Final map: {result4['final_map']}")
+        logger.info(
+            f"Saga[{saga_id}]: Completed successfully. Final map: {result4['final_map']}"
+        )
         # Optionally release resources at end
         release_resources.delay(saga_id)
     except Exception as e:
@@ -52,10 +65,12 @@ def run_saga(robot_count, area, fail_steps=None):
             pass  # nothing to compensate
         logger.info(f"Saga[{saga_id}]: Compensation dispatched due to failure.")
 
+
 if __name__ == "__main__":
     # Example usage: run_saga(2, "ZoneA", fail_steps={"plan_route"})
     import sys
     import ast
+
     robot_count = int(sys.argv[1]) if len(sys.argv) > 1 else 2
     area = sys.argv[2] if len(sys.argv) > 2 else "ZoneA"
     fail_steps = ast.literal_eval(sys.argv[3]) if len(sys.argv) > 3 else set()

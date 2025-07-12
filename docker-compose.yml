@@ -3,6 +3,11 @@ services:
     image: "redis:7-alpine"
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
 
   db:
     image: "postgres:15-alpine"
@@ -18,8 +23,10 @@ services:
   celery_worker:
     build: .
     depends_on:
-      - redis
-      - db
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_started
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -55,6 +62,15 @@ services:
       - RI_REDIS_HOST=redis
       - RI_REDIS_PORT=6379
       - RI_REDIS_ALIAS=saga-redis
+
+  orchestrator:
+    build: .
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_STREAM=saga_requests
+    command: python -m app.orchestrator_listener
 
 volumes:
   pgdata:
