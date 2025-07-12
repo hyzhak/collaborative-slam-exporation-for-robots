@@ -1,7 +1,7 @@
 import uuid
 import logging
-from celery_app import celery_app
-from tasks import (
+from app.celery_app import celery_app
+from app.tasks import (
     allocate_resources,
     plan_route,
     perform_exploration,

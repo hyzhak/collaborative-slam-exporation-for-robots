@@ -1,14 +1,12 @@
-version: "3.9"
+# version: "3.9"
 services:
   redis:
     image: "redis:7-alpine"
-    container_name: saga_redis
     ports:
       - "6379:6379"
 
   db:
     image: "postgres:15-alpine"
-    container_name: saga_postgres
     environment:
       - POSTGRES_DB=sagadb
       - POSTGRES_USER=sagauser
@@ -20,7 +18,6 @@ services:
 
   celery_worker:
     build: .
-    container_name: saga_worker
     depends_on:
       - redis
       - db
@@ -32,10 +29,14 @@ services:
       - POSTGRES_USER=sagauser
       - POSTGRES_PASSWORD=sagapass
     command: celery -A app.celery_app worker --loglevel=info
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.celery_app", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   flower:
     image: mher/flower:latest
-    container_name: saga_flower
     depends_on:
       - redis
     ports:

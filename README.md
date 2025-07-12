@@ -54,11 +54,13 @@ All services are defined in `docker-compose.yml` and run together on a single ma
    If your tasks require tables, create them in the Postgres container.
 
 5. **Trigger a Saga run:**
-   - **Via script:**  
+   - **Via container (recommended):**
 
      ```bash
-     docker-compose exec celery_worker python -c "from app import orchestrator; orchestrator.run_saga(2, 'ZoneA')"
+     podman-compose exec celery_worker python -m app.orchestrator 2 ZoneA
      ```
+
+     - Adjust arguments as needed for robot count, area, or failure simulation.
 
    - **Via API (if enabled):**  
      Send a POST request to `/start_saga` on port 8000.

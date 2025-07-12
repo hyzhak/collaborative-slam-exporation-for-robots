@@ -3,8 +3,9 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && pip install pytest
 
+COPY tests ./tests
 COPY . /app
 
 ENV CELERY_BROKER_URL=redis://redis:6379/0 \

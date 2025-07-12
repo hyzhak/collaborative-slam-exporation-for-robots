@@ -1,0 +1,17 @@
+services:
+  integration_test:
+    build: .
+    depends_on:
+      - redis
+      - db
+      - celery_worker
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=sagadb
+      - POSTGRES_USER=sagauser
+      - POSTGRES_PASSWORD=sagapass
+    command: pytest -v tests/test_orchestration.py
+    volumes:
+      - ./tests:/app/tests:ro
