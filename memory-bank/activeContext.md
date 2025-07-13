@@ -19,8 +19,7 @@
 
 ## Next Steps
 
-- Refactor app/tasks.py so each Celery task emits its own Redis Stream event.
-- Move orchestrator logic into Celery (e.g. using Canvas) for saga orchestration.
+- Move orchestrator logic into Celery using Canvas primitives for saga orchestration (not yet implemented).
 - For each item, follow TDD:
   1. Write integration tests.
   2. Run tests (should fail).

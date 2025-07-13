@@ -13,6 +13,6 @@ services:
       - POSTGRES_DB=sagadb
       - POSTGRES_USER=sagauser
       - POSTGRES_PASSWORD=sagapass
-    command: pytest -v tests/
+    command: pytest -vv tests/
     volumes:
       - ./tests:/app/tests:ro

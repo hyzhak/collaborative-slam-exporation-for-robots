@@ -18,49 +18,50 @@ from app.tasks import (
 logger = logging.getLogger(__name__)
 
 
-def run_saga(robot_count, area, fail_steps=None):
+def run_saga(robot_count, area, correlation_id, fail_steps=None):
     """
     fail_steps: optional set/list of step names to force failure for testing, e.g. {"allocate_resources"}
+    correlation_id: required, must be passed from orchestrator_listener
     """
     saga_id = str(uuid.uuid4())[:8]
     fail_steps = set(fail_steps or [])
     logger.info(
-        f"Saga[{saga_id}]: Starting saga with {robot_count} robots in area '{area}'"
+        f"Saga[{saga_id}]: Starting saga with {robot_count} robots in area '{area}', correlation_id={correlation_id}"
     )
     try:
         # Step 1: Allocate resources
         res1 = allocate_resources.delay(
-            saga_id, robot_count, fail="allocate_resources" in fail_steps
+            correlation_id, saga_id, robot_count, fail="allocate_resources" in fail_steps
         )
         result1 = res1.get(timeout=10)
         # Step 2: Plan route
-        res2 = plan_route.delay(saga_id, area, fail="plan_route" in fail_steps)
+        res2 = plan_route.delay(correlation_id, saga_id, area, fail="plan_route" in fail_steps)
         result2 = res2.get(timeout=10)
         # Step 3: Perform exploration
         res3 = perform_exploration.delay(
-            saga_id, robot_count, fail="perform_exploration" in fail_steps
+            correlation_id, saga_id, robot_count, fail="perform_exploration" in fail_steps
         )
         result3 = res3.get(timeout=20)
         # Step 4: Integrate maps
-        res4 = integrate_maps.delay(saga_id, fail="integrate_maps" in fail_steps)
+        res4 = integrate_maps.delay(correlation_id, saga_id, fail="integrate_maps" in fail_steps)
         result4 = res4.get(timeout=10)
         logger.info(
             f"Saga[{saga_id}]: Completed successfully. Final map: {result4['final_map']}"
         )
         # Optionally release resources at end
-        release_resources.delay(saga_id)
+        release_resources.delay(correlation_id, saga_id)
     except Exception as e:
         logger.error(f"Saga[{saga_id}]: Failed: {e}")
         # Compensation logic in reverse order
         if "integrate_maps" in fail_steps:
-            rollback_integration.delay(saga_id)
-            abort_exploration.delay(saga_id)
-            release_resources.delay(saga_id)
+            rollback_integration.delay(correlation_id, saga_id)
+            abort_exploration.delay(correlation_id, saga_id)
+            release_resources.delay(correlation_id, saga_id)
         elif "perform_exploration" in fail_steps:
-            abort_exploration.delay(saga_id)
-            release_resources.delay(saga_id)
+            abort_exploration.delay(correlation_id, saga_id)
+            release_resources.delay(correlation_id, saga_id)
         elif "plan_route" in fail_steps:
-            release_resources.delay(saga_id)
+            release_resources.delay(correlation_id, saga_id)
         elif "allocate_resources" in fail_steps:
             pass  # nothing to compensate
         logger.info(f"Saga[{saga_id}]: Compensation dispatched due to failure.")

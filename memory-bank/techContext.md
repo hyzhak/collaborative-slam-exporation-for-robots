@@ -33,6 +33,12 @@
 
 ## Tool Usage Patterns
 
+- Redis Streams are used for event-driven orchestration and command/event propagation.
+- Each saga orchestration is tracked by a unique `saga_id`, generated at orchestration start.
+- A persistent `correlation_id` is required and propagated through all events and commands, enabling tracking of related sagas.
+- Celery is used for distributed task execution of saga steps.
+- RedisInsight is used for debugging and monitoring Redis streams.
+- All event/command emission now uses only top-level fields: `correlation_id`, `saga_id`, `event_type`, `status` (for events), `payload`, and `timestamp`.
 - Celery tasks registered in `app/tasks.py`, orchestrator logic in `app/orchestrator.py`.
 - Docker Compose manages service startup order and networking.
 - Flower connects to Redis to visualize task execution.

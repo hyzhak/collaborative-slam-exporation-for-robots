@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
-REDIS_STREAM = os.environ.get("REDIS_STREAM", "saga_requests")
+REDIS_STREAM = os.environ.get("REDIS_STREAM", "mission:commands")
 GROUP_NAME = "orchestrator_group"
 CONSUMER_NAME = "orchestrator_1"
 
@@ -54,11 +54,16 @@ def main():
                     for msg_id, fields in messages:
                         robot_count = int(fields.get("robot_count", 2))
                         area = fields.get("area", "ZoneA")
+                        correlation_id = fields.get("correlation_id")
+                        if not correlation_id:
+                            logger.error("Missing correlation_id in incoming command, skipping message.")
+                            r.xack(REDIS_STREAM, GROUP_NAME, msg_id)
+                            continue
                         logger.info(
-                            f"Received saga request: robot_count={robot_count}, area={area}"
+                            f"Received saga request: robot_count={robot_count}, area={area}, correlation_id={correlation_id}"
                         )
                         try:
-                            run_saga(robot_count, area)
+                            run_saga(robot_count, area, correlation_id=correlation_id)
                             r.xack(REDIS_STREAM, GROUP_NAME, msg_id)
                         except Exception as e:
                             logger.error(f"Failed to process saga request: {e}")

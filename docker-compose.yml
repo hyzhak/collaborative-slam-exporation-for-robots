@@ -40,6 +40,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    volumes:
+      - ./app:/app/app
 
   flower:
     image: mher/flower:latest
@@ -69,8 +71,10 @@ services:
       redis:
         condition: service_healthy
     environment:
-      - REDIS_STREAM=saga_requests
+      - REDIS_STREAM=mission:commands
     command: python -m app.orchestrator_listener
+    volumes:
+      - ./app:/app/app
 
 volumes:
   pgdata:
