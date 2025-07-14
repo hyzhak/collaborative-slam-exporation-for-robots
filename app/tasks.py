@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def allocate_resources(correlation_id, saga_id, robot_count, fail=False):
     logger.info(f"Saga[{saga_id}]: Allocating {robot_count} robots (correlation_id={correlation_id})")
     time.sleep(0.5)
-    if fail or random.random() < 0.1:
+    if fail:
         logger.error(f"Saga[{saga_id}]: Allocation failed!")
         emit_event(
             "mission:events",
@@ -40,7 +40,7 @@ def allocate_resources(correlation_id, saga_id, robot_count, fail=False):
 def plan_route(correlation_id, saga_id, area, fail=False):
     logger.info(f"Saga[{saga_id}]: Planning route for area {area} (correlation_id={correlation_id})")
     time.sleep(0.5)
-    if fail or random.random() < 0.1:
+    if fail:
         logger.error(f"Saga[{saga_id}]: Route planning failed!")
         emit_event(
             "mission:events",
@@ -53,10 +53,10 @@ def plan_route(correlation_id, saga_id, area, fail=False):
         raise Exception("Route planning failed")
     logger.info(f"Saga[{saga_id}]: Route planned")
     emit_command(
-        "plan:commands",
+        "routing:commands",
         correlation_id,
         saga_id,
-        "plan:plan",
+        "routing:plan",
         {"route": f"Route for {area}"},
     )
     return {"route": f"Route for {area}"}
@@ -66,7 +66,7 @@ def plan_route(correlation_id, saga_id, area, fail=False):
 def perform_exploration(correlation_id, saga_id, robot_count, fail=False):
     logger.info(f"Saga[{saga_id}]: Performing exploration with {robot_count} robots (correlation_id={correlation_id})")
     time.sleep(2)
-    if fail or random.random() < 0.1:
+    if fail:
         logger.error(f"Saga[{saga_id}]: Exploration failed!")
         emit_event(
             "mission:events",
@@ -82,7 +82,7 @@ def perform_exploration(correlation_id, saga_id, robot_count, fail=False):
         "exploration:commands",
         correlation_id,
         saga_id,
-        "exploration:explore",
+        "exploration:perform",
         {"exploration_result": "success"},
     )
     return {"exploration_result": "success"}
@@ -92,7 +92,7 @@ def perform_exploration(correlation_id, saga_id, robot_count, fail=False):
 def integrate_maps(correlation_id, saga_id, fail=False):
     logger.info(f"Saga[{saga_id}]: Integrating maps (correlation_id={correlation_id})")
     time.sleep(0.5)
-    if fail or random.random() < 0.1:
+    if fail:
         logger.error(f"Saga[{saga_id}]: Map integration failed!")
         emit_event(
             "mission:events",
