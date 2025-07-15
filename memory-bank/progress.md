@@ -18,5 +18,4 @@
 - Added Flower for real-time monitoring of task execution.
 - Docker Compose setup for all core services.
 - Implemented compensation logic for robust rollback on failures.
-- Added optional FastAPI endpoint for triggering Sagas.
 - Refactored orchestrator and tasks for clarity and maintainability.

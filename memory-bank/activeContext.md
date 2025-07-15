@@ -4,22 +4,9 @@
 
 - Implement event-driven orchestrator: listen to incoming Redis Stream and invoke app/orchestrator.py.
 
-## Recent Changes
-
-- Introduced event-driven orchestration: orchestrator service now runs app/orchestrator_listener.py, listening to Redis Streams and triggering saga workflows.
-- Added centralized logging configuration (app/logging_config.py) for consistent, configurable logs across all services.
-- Refactored saga orchestration logic in app/orchestrator.py to support event-driven invocation and robust compensation.
-- All saga steps and compensation logic implemented as Celery tasks in app/tasks.py, with improved logging and testability.
-- Enhanced Celery app startup reliability in app/celery_app.py (waits for Redis).
-- Added integration test (tests/test_orchestrator_trigger.py) to validate end-to-end event-driven orchestration via Redis Streams.
-- docker-compose.yml and docker-compose.test.yaml updated: new orchestrator service, RedisInsight, Flower, and integration_test service for CI.
-- Added RedisInsight service to docker-compose.yml for Redis Streams visualization; verified running at <http://localhost:8001>.
-- Memory Bank files created: projectbrief.md, productContext.md, systemPatterns.md, techContext.md.
-- All core context extracted from design.md and documented in memory-bank/.
-
 ## Next Steps
 
-## Active Decisions and Considerations
+- Implement FastAPI HTTP API for triggering Saga orchestrations.
 
 ## Active Decisions and Considerations
 

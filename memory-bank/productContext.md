@@ -19,6 +19,7 @@
 - The `domain` field has been removed from all event/command emissions and function signatures for simplicity.
 - Uses Docker Compose for easy deployment and management of all services.
 - Provides real-time monitoring and debugging via Flower UI and RedisInsight.
+- (Optional, postponed) FastAPI HTTP API for triggering Sagas.
 
 ## User Experience Goals
 

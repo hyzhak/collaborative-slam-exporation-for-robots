@@ -8,7 +8,7 @@
 - PostgreSQL (shared persistent state for tasks)
 - Docker & Docker Compose (containerization and orchestration)
 - Flower (Celery monitoring UI)
-- (Optional) FastAPI + Uvicorn (HTTP API for triggering Saga)
+- (Optional, postponed) FastAPI + Uvicorn (HTTP API for triggering Saga)
 
 ## Development Setup
 

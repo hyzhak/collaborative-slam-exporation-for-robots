@@ -19,7 +19,6 @@
 - The integration test container depends on all core services (Redis, DB, Celery worker).
 - The `tests/` directory is mounted as a volume into the integration test container, ensuring tests are always up-to-date with the codebase.
 - Tests are executed using a helper script or directly via Podman Compose or Docker Compose commands.
-- All code changes must be validated by running the integration test suite before merging or deployment.
 
 ## Observability and Traceability
 
