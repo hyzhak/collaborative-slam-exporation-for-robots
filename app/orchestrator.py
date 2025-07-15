@@ -32,19 +32,19 @@ def run_saga(robot_count, area, correlation_id, fail_steps=None):
 
     # Build the main saga chain using Celery Canvas with compensation via link_error
     # All tasks must receive correlation_id and saga_id as first arguments
-    allocate = allocate_resources.s(correlation_id, saga_id, robot_count, fail="allocate_resources" in fail_steps).set(
+    allocate = allocate_resources.s(correlation_id, saga_id, robot_count).set(
         link_error=release_resources.si(correlation_id, saga_id)
     )
-    plan = plan_route.si(correlation_id, saga_id, area, "plan_route" in fail_steps).set(
+    plan = plan_route.si(correlation_id, saga_id, area).set(
         link_error=release_resources.si(correlation_id, saga_id)
     )
-    explore = perform_exploration.si(correlation_id, saga_id, robot_count, "perform_exploration" in fail_steps).set(
+    explore = perform_exploration.si(correlation_id, saga_id, robot_count).set(
         link_error=chain(
             abort_exploration.si(correlation_id, saga_id),
             release_resources.si(correlation_id, saga_id)
         )
     )
-    integrate = integrate_maps.si(correlation_id, saga_id, "integrate_maps" in fail_steps).set(
+    integrate = integrate_maps.si(correlation_id, saga_id).set(
         link_error=chain(
             rollback_integration.si(correlation_id, saga_id),
             abort_exploration.si(correlation_id, saga_id),
@@ -61,14 +61,3 @@ def run_saga(robot_count, area, correlation_id, fail_steps=None):
 
     saga_chain.apply_async()
     logger.info(f"Saga[{saga_id}]: Canvas chain dispatched with compensation.")
-
-
-if __name__ == "__main__":
-    # Example usage: run_saga(2, "ZoneA", fail_steps={"plan_route"})
-    import sys
-    import ast
-
-    robot_count = int(sys.argv[1]) if len(sys.argv) > 1 else 2
-    area = sys.argv[2] if len(sys.argv) > 2 else "ZoneA"
-    fail_steps = ast.literal_eval(sys.argv[3]) if len(sys.argv) > 3 else set()
-    run_saga(robot_count, area, fail_steps)
