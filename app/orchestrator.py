@@ -4,6 +4,7 @@ setup_logging()
 
 import uuid
 import logging
+from celery import chain
 from app.celery_app import celery_app
 from app.tasks import (
     allocate_resources,
@@ -28,43 +29,38 @@ def run_saga(robot_count, area, correlation_id, fail_steps=None):
     logger.info(
         f"Saga[{saga_id}]: Starting saga with {robot_count} robots in area '{area}', correlation_id={correlation_id}"
     )
-    try:
-        # Step 1: Allocate resources
-        res1 = allocate_resources.delay(
-            correlation_id, saga_id, robot_count, fail="allocate_resources" in fail_steps
+
+    # Build the main saga chain using Celery Canvas with compensation via link_error
+    # All tasks must receive correlation_id and saga_id as first arguments
+    allocate = allocate_resources.s(correlation_id, saga_id, robot_count, fail="allocate_resources" in fail_steps).set(
+        link_error=release_resources.si(correlation_id, saga_id)
+    )
+    plan = plan_route.si(correlation_id, saga_id, area, "plan_route" in fail_steps).set(
+        link_error=release_resources.si(correlation_id, saga_id)
+    )
+    explore = perform_exploration.si(correlation_id, saga_id, robot_count, "perform_exploration" in fail_steps).set(
+        link_error=chain(
+            abort_exploration.si(correlation_id, saga_id),
+            release_resources.si(correlation_id, saga_id)
         )
-        result1 = res1.get(timeout=10)
-        # Step 2: Plan route
-        res2 = plan_route.delay(correlation_id, saga_id, area, fail="plan_route" in fail_steps)
-        result2 = res2.get(timeout=10)
-        # Step 3: Perform exploration
-        res3 = perform_exploration.delay(
-            correlation_id, saga_id, robot_count, fail="perform_exploration" in fail_steps
+    )
+    integrate = integrate_maps.si(correlation_id, saga_id, "integrate_maps" in fail_steps).set(
+        link_error=chain(
+            rollback_integration.si(correlation_id, saga_id),
+            abort_exploration.si(correlation_id, saga_id),
+            release_resources.si(correlation_id, saga_id)
         )
-        result3 = res3.get(timeout=20)
-        # Step 4: Integrate maps
-        res4 = integrate_maps.delay(correlation_id, saga_id, fail="integrate_maps" in fail_steps)
-        result4 = res4.get(timeout=10)
-        logger.info(
-            f"Saga[{saga_id}]: Completed successfully. Final map: {result4['final_map']}"
-        )
-        # Optionally release resources at end
-        release_resources.delay(correlation_id, saga_id)
-    except Exception as e:
-        logger.error(f"Saga[{saga_id}]: Failed: {e}")
-        # Compensation logic in reverse order
-        if "integrate_maps" in fail_steps:
-            rollback_integration.delay(correlation_id, saga_id)
-            abort_exploration.delay(correlation_id, saga_id)
-            release_resources.delay(correlation_id, saga_id)
-        elif "perform_exploration" in fail_steps:
-            abort_exploration.delay(correlation_id, saga_id)
-            release_resources.delay(correlation_id, saga_id)
-        elif "plan_route" in fail_steps:
-            release_resources.delay(correlation_id, saga_id)
-        elif "allocate_resources" in fail_steps:
-            pass  # nothing to compensate
-        logger.info(f"Saga[{saga_id}]: Compensation dispatched due to failure.")
+    )
+    saga_chain = chain(
+        allocate,
+        plan,
+        explore,
+        integrate,
+        release_resources.si(correlation_id, saga_id)
+    )
+
+    saga_chain.apply_async()
+    logger.info(f"Saga[{saga_id}]: Canvas chain dispatched with compensation.")
 
 
 if __name__ == "__main__":
