@@ -19,14 +19,7 @@
 
 ## Next Steps
 
-- Move orchestrator logic into Celery using Canvas primitives for saga orchestration (not yet implemented).
-- For each item, follow TDD:
-  1. Write integration tests.
-  2. Run tests (should fail).
-  3. Implement feature.
-  4. Run tests (should pass).
-  5. Update Memory Bank notes.
-  6. Commit changes.
+## Active Decisions and Considerations
 
 ## Active Decisions and Considerations
 
