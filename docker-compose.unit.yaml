@@ -1,0 +1,6 @@
+services:
+  unit_test:
+    build: .
+    command: pytest -vv tests/unit/
+    volumes:
+      - ./tests:/app/tests:ro
