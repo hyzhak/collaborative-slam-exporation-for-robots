@@ -1,5 +1,5 @@
 import pytest
-import app.handlers.allocate_resources as handler
+import app.command_handlers.handlers.allocate_resources as handler
 
 def test_handler_interface():
     assert hasattr(handler, "STREAM_NAME")

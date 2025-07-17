@@ -4,15 +4,15 @@ import asyncio
 
 def discovery_handler_modules():
     """
-    Discover handler modules under app.handlers.
+    Discover handler modules under app.command_handlers.handlers.
 
     Returns:
         List of dicts with keys: name, stream, group, handle
     """
     handlers = []
-    package = importlib.import_module("app.handlers")
+    package = importlib.import_module("app.command_handlers.handlers")
     for name, ispkg in pkgutil.iter_modules(package.__path__):
-        module = importlib.import_module(f"app.handlers.{name}")
+        module = importlib.import_module(f"app.command_handlers.handlers.{name}")
         handlers.append({
             "name": name,
             "stream": getattr(module, "STREAM_NAME", None),

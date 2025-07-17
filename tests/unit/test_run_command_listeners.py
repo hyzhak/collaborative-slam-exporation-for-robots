@@ -2,7 +2,7 @@ import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.command_listener import run_command_listeners
+from app.command_handlers.command_listener import run_command_listeners
 
 
 @pytest.mark.asyncio
@@ -16,7 +16,7 @@ async def test_run_command_listeners_invokes_handlers(monkeypatch):
 
     # Mock discovery_handler_modules to return one handler
     monkeypatch.setattr(
-        "app.command_listener.discovery_handler_modules",
+        "app.command_handlers.command_listener.discovery_handler_modules",
         lambda: [
             {
                 "name": "allocate_resources",
@@ -55,7 +55,7 @@ async def test_run_command_listeners_handles_errors(monkeypatch):
         raise ValueError("fail")
 
     monkeypatch.setattr(
-        "app.command_listener.discovery_handler_modules",
+        "app.command_handlers.command_listener.discovery_handler_modules",
         lambda: [
             {
                 "name": "error_handler",

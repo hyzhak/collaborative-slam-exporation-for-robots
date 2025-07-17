@@ -1,22 +1,22 @@
 import sys
 import types
 import pytest
-from app.command_listener import discovery_handler_modules
+from app.command_handlers.command_listener import discovery_handler_modules
 
 
 @pytest.fixture(autouse=True)
 def mock_handlers(monkeypatch):
-    # Create a dummy app.handlers package
-    handlers_pkg = types.ModuleType("app.handlers")
+    # Create a dummy app.command_handlers.handlers package
+    handlers_pkg = types.ModuleType("app.command_handlers.handlers")
     handlers_pkg.__path__ = []
-    sys.modules["app.handlers"] = handlers_pkg
+    sys.modules["app.command_handlers.handlers"] = handlers_pkg
 
     # Create a dummy handler module
-    dummy = types.ModuleType("app.handlers.dummy_handler")
+    dummy = types.ModuleType("app.command_handlers.handlers.dummy_handler")
     dummy.STREAM_NAME = "dummy:commands"
     dummy.GROUP_NAME = "dummy_group"
     dummy.handle = lambda fields: None
-    sys.modules["app.handlers.dummy_handler"] = dummy
+    sys.modules["app.command_handlers.handlers.dummy_handler"] = dummy
 
     # Patch pkgutil.iter_modules to simulate discovery
     def iter_modules(path):
