@@ -2,11 +2,13 @@
 
 ## Current Work Focus
 
+- Refactored command listener and handler discovery: moved handlers to app/command_handlers/handlers/, updated all references, and validated with passing unit tests.
 - Implement event-driven orchestrator: listen to incoming Redis Stream and invoke app/orchestrator.py.
 
 ## Next Steps
 
-- Implement FastAPI HTTP API for triggering Saga orchestrations.
+- Develop additional handler modules under app/command_handlers/handlers/.
+- Extend integration tests for end-to-end command stream handling.
 
 ## Active Decisions and Considerations
 

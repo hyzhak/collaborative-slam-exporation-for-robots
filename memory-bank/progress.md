@@ -2,6 +2,7 @@
 
 ## Recent Milestones
 
+- Refactored command listener and handler discovery: moved handlers to app/command_handlers/handlers/, updated all references, and validated with passing unit tests.
 - Redis Streams are now used for all event-driven orchestration and command/event propagation.
 - All event/command emission uses only top-level fields: `correlation_id`, `saga_id`, `event_type`, `status` (for events), `payload`, and `timestamp`.
 - The `domain` field has been removed from all event/command emissions and function signatures for simplicity.
