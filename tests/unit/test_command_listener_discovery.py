@@ -16,6 +16,7 @@ def mock_handlers(monkeypatch):
     dummy.STREAM_NAME = "dummy:commands"
     dummy.GROUP_NAME = "dummy_group"
     dummy.handle = lambda fields: None
+    dummy.EVENT_TYPE = "dummy:event"
     sys.modules["app.command_handlers.handlers.dummy_handler"] = dummy
 
     # Patch pkgutil.iter_modules to simulate discovery
@@ -33,4 +34,5 @@ def test_discovery_handler_modules_returns_metadata():
     assert handler["name"] == "dummy_handler"
     assert handler["stream"] == "dummy:commands"
     assert handler["group"] == "dummy_group"
+    assert handler["event_type"] == "dummy:event"
     assert callable(handler["handle"])

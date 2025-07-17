@@ -22,6 +22,7 @@ async def test_run_command_listeners_invokes_handlers(monkeypatch):
                 "name": "allocate_resources",
                 "stream": "stream1",
                 "group": "group1",
+                "event_type": "foo",
                 "handle": mock_handle,
             }
         ],
@@ -31,7 +32,7 @@ async def test_run_command_listeners_invokes_handlers(monkeypatch):
     redis_client = MagicMock()
     # Simulate one message, then empty
     redis_client.xread_group = AsyncMock(
-        side_effect=[{"stream1": [("msgid1", {"foo": "bar"})]}, {"stream1": []}]
+        side_effect=[{"stream1": [("msgid1", {"foo": "bar", "event_type": "foo"})]}, {"stream1": []}]
     )
     redis_client.xack = AsyncMock()
 
@@ -44,7 +45,7 @@ async def test_run_command_listeners_invokes_handlers(monkeypatch):
 
     # Assert handler was called
     assert mock_handle.called
-    assert mock_handle.fields == {"foo": "bar"}
+    assert mock_handle.fields == {"foo": "bar", "event_type": "foo"}
     redis_client.xack.assert_awaited_with("stream1", "group1", "msgid1")
 
 
@@ -61,6 +62,7 @@ async def test_run_command_listeners_handles_errors(monkeypatch):
                 "name": "error_handler",
                 "stream": "stream2",
                 "group": "group2",
+                "event_type": "bar",
                 "handle": error_handle,
             }
         ],
@@ -68,7 +70,7 @@ async def test_run_command_listeners_handles_errors(monkeypatch):
 
     redis_client = MagicMock()
     redis_client.xread_group = AsyncMock(
-        side_effect=[{"stream2": [("msgid2", {"baz": "qux"})]}, {"stream2": []}]
+        side_effect=[{"stream2": [("msgid2", {"baz": "qux", "event_type": "bar"})]}, {"stream2": []}]
     )
     redis_client.xack = AsyncMock()
 

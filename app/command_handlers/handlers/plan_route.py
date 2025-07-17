@@ -1,5 +1,6 @@
 STREAM_NAME = "routing:commands"
 GROUP_NAME = "routing_handler_group"
+EVENT_TYPE = "routing:plan"
 
 
 def handle(fields: dict) -> None:
