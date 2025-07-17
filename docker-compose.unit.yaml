@@ -2,5 +2,7 @@ services:
   unit_test:
     build: .
     command: pytest -vv tests/unit/
+    environment:
+      - PYTHONPATH=/app
     volumes:
       - ./tests:/app/tests:ro
