@@ -83,3 +83,20 @@ This enables existing OpenTelemetry agents and dashboards to ingest and visualiz
 4. Eventuate Tram Sagas Pattern: [https://eventuate.io/docs/](https://eventuate.io/docs/)
 5. AsyncAPI Request/Reply Tutorial: [https://www.asyncapi.com/docs/tutorials/](https://www.asyncapi.com/docs/tutorials/)
 6. MassTransit Saga Documentation: [https://masstransit.io/documentation/](https://masstransit.io/documentation/)
+
+---
+
+## Comments and Implementation
+
+* Use snake_case for all field names (correlation_id, request_id, parent_span_id, traceparent, status, etc.) for consistency and Python alignment.
+* Always generate a correlation_id (saga-level, UUID4) at saga entry and propagate it through all events and stream records.
+* For each request/reply, generate a request_id (span-level, UUID4) and echo it in replies for accurate binding.
+* Include parent_span_id in sub-operations to enable hierarchical tracing and link child spans to their parent.
+* Add traceparent field in every stream entry, formatted as "00-<correlation_id>-<request_id>-01", to support OpenTelemetry and distributed tracing.
+* Document conventions for field names, header formats, and stream naming in a shared style guide.
+* Ensure all Redis stream entries include correlation_id, request_id, parent_span_id (if applicable), traceparent, and status.
+* Integrate with observability tools (OpenTelemetry, Jaeger) by propagating traceparent and parent_span_id.
+* Keep IDs immutable and avoid modifying them in-transit; generate new span IDs for each logical call.
+* Limit payload size to essential trace metadata fields.
+* Apply stream trimming and TTL policies to avoid Redis bloat.
+* Update example workflows and reference implementations to reflect these conventions and tracing requirements.

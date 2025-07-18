@@ -160,3 +160,16 @@ while True:
 * **Redis Community**: Best practices thread on multi‑stage streaming
 * **Server‑Sent Events Spec** (analogy): [https://html.spec.whatwg.org/multipage/server-sent-events.html](https://html.spec.whatwg.org/multipage/server-sent-events.html)
 * **StackOverflow Examples**: Typical request/reply implementations
+
+---
+
+## Comments and Implementation
+
+* Use snake_case for all field names (e.g., correlation_id, request_id, reply_to, status, progress, result, traceparent, parent_span_id) to align with Python and Redis conventions.
+* Extend message schema to include hierarchical tracing: propagate traceparent and parent_span_id in every stream entry for OpenTelemetry compatibility.
+* For each request, generate a correlation_id (saga-level) and request_id (span-level); include both in all request and reply messages.
+* Reply streams should be named as service:responses:<correlation_id>:<request_id> for sub-operations, or service:responses:<correlation_id> for top-level.
+* Each reply message should include: correlation_id, request_id, parent_span_id (if applicable), status (start/progress/completed), progress (if applicable), result (if applicable), and traceparent ("00-<correlation_id>-<request_id>-01").
+* Document and implement stream trimming (XADD MAXLEN ~ <count>) and/or TTL for reply streams to avoid Redis bloat.
+* Update reference implementations to use snake_case fields and propagate all tracing metadata.
+* Ensure integration with OpenTelemetry by including traceparent and parent_span_id in all messages and linking spans accordingly.
