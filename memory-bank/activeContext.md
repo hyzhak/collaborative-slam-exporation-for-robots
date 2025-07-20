@@ -2,11 +2,13 @@
 
 ## Current Work Focus
 
+- Added `read_replies` helper to `app/redis_utils.py` for blocking reply stream reads using XREADGROUP, consumer group best practices, and pluggable retry strategies (exponential, linear, or immediate fail).
 - Refactored command listener and handler discovery: moved handlers to app/command_handlers/handlers/, updated all references, and validated with passing unit tests.
 - Implement event-driven orchestrator: listen to incoming Redis Stream and invoke app/orchestrator.py.
 
 ## Next Steps
 
+- Extend `read_replies` unit tests to cover retry strategies and timeout handling.
 - Develop additional handler modules under app/command_handlers/handlers/.
 - Extend integration tests for end-to-end command stream handling.
 

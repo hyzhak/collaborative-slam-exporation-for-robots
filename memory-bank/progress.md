@@ -2,6 +2,7 @@
 
 ## Recent Milestones
 
+- Added `read_replies` helper to `app/redis_utils.py` supporting blocking reply stream reads via XREADGROUP, consumer group best practices, and pluggable retry strategies (exponential, linear, immediate fail). Updated activeContext.md and prompt plan to reflect new implementation and requirements.
 - Refactored command listener and handler discovery: moved handlers to app/command_handlers/handlers/, updated all references, and validated with passing unit tests.
 - Redis Streams are now used for all event-driven orchestration and command/event propagation.
 - All event/command emission uses only top-level fields: `correlation_id`, `saga_id`, `event_type`, `status` (for events), `payload`, and `timestamp`.

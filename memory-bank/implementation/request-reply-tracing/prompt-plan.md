@@ -21,11 +21,15 @@
 
 Prompt 1:  
 Objective: Scaffold a blocking-reply reader in `app/redis_utils.py`  
-Guidance: Create a new function `read_replies(stream, correlation_id, request_id, timeout, backoff_config)` that uses `XREADGROUP` with BLOCK, applies exponential backoff on empty reads, and raises `TimeoutError` after total timeout.  
-Test: Write a unit test that simulates no messages in the stream and verifies backoff retries and eventual timeout exception.  
+Guidance: Create a new function `read_replies(stream, correlation_id, request_id, timeout, backoff_config)` that:
+- Initializes a consumer group on the given `stream` (creating it with `XGROUP CREATE` and `mkstream=True` if needed) using a group name derived from the stream (for example, `<stream>:group`) and a unique consumer name (for example, `reader-<UUID>`), following Redis Streams best practices.
+- Uses `XREADGROUP` with `BLOCK` to read new entries from the reply stream.
+- Applies exponential backoff on empty reads with a default `backoff_config` (initial_delay=0.1s, max_delay=1s, factor=2), then continues retrying until the total `timeout` is exceeded, at which point it raises a `TimeoutError`.
+- Logs any `"start"` and `"progress"` messages internally but returns only the `"completed"` reply message as a dictionary containing all stream fields.
+Test: Write a unit test that simulates no messages in the stream and verifies backoff retries and eventual timeout exception using the default backoff configuration.  
 Integration: This helper will be the foundation for all tasks’ reply handling.
 
-Prompt 2:  
+Prompt 2:
 Objective: Extend `emit_command` and `emit_event` to accept optional `maxlen` and `ttl` parameters  
 Guidance: Update signatures to include `maxlen=None, ttl=None`, apply `XADD MAXLEN ~ maxlen` when provided, and call `EXPIRE` on the stream.  
 Test: Write unit tests that emit to a temporary Redis instance, assert stream length trimming and TTL setting.  
