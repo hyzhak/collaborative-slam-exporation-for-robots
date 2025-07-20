@@ -14,7 +14,15 @@ def get_redis_client():
 
 
 def emit_command(
-    stream, correlation_id, saga_id, event_type, payload, maxlen=None, ttl=None
+    stream,
+    correlation_id,
+    saga_id,
+    event_type,
+    payload,
+    request_id=None,
+    traceparent=None,
+    maxlen=None,
+    ttl=None,
 ):
     r = get_redis_client()
     fields = {
@@ -24,6 +32,10 @@ def emit_command(
         "payload": json.dumps(payload),
         "timestamp": str(int(time.time())),
     }
+    if request_id is not None:
+        fields["request_id"] = request_id
+    if traceparent is not None:
+        fields["traceparent"] = traceparent
     xadd_kwargs = {}
     if maxlen is not None:
         xadd_kwargs["maxlen"] = maxlen
@@ -34,7 +46,9 @@ def emit_command(
     return entry_id
 
 
-def read_replies(stream, correlation_id, request_id, timeout, retry_strategy=None):
+def read_replies(
+    stream, correlation_id, request_id, timeout, retry_strategy=None, traceparent=None
+):
     """
     Blocking read for reply stream using XREADGROUP.
     Returns only the 'completed' reply message as a dict.

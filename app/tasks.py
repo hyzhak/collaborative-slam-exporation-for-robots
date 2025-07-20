@@ -2,8 +2,9 @@ from app.logging_config import setup_logging
 setup_logging()
 
 import logging
+import uuid
 from .celery_app import celery_app
-from .redis_utils import emit_command, emit_event
+from .redis_utils import emit_command, emit_event, read_replies, exponential_retry
 
 logger = logging.getLogger(__name__)
 
@@ -11,14 +12,26 @@ logger = logging.getLogger(__name__)
 @celery_app.task
 def allocate_resources(correlation_id, saga_id, robot_count):
     logger.info(f"Saga[{saga_id}]: Allocating {robot_count} robots (correlation_id={correlation_id})")
+    request_id = uuid.uuid4().hex
+    traceparent = request_id
     emit_command(
         "resources:commands",
         correlation_id,
         saga_id,
         "resources:allocate",
         {"robots_allocated": robot_count},
+        request_id=request_id,
+        traceparent=traceparent,
     )
-    return {"robots_allocated": robot_count}
+    result = read_replies(
+        f"resources:responses:{correlation_id}",
+        correlation_id,
+        request_id,
+        traceparent=traceparent,
+        timeout=30,
+        retry_strategy=exponential_retry(),
+    )
+    return result
 
 
 @celery_app.task
