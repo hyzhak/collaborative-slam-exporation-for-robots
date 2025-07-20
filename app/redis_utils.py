@@ -13,7 +13,9 @@ def get_redis_client():
     return redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 
 
-def emit_command(stream, correlation_id, saga_id, event_type, payload):
+def emit_command(
+    stream, correlation_id, saga_id, event_type, payload, maxlen=None, ttl=None
+):
     r = get_redis_client()
     fields = {
         "correlation_id": correlation_id,
@@ -22,7 +24,14 @@ def emit_command(stream, correlation_id, saga_id, event_type, payload):
         "payload": json.dumps(payload),
         "timestamp": str(int(time.time())),
     }
-    return r.xadd(stream, fields)
+    xadd_kwargs = {}
+    if maxlen is not None:
+        xadd_kwargs["maxlen"] = maxlen
+        xadd_kwargs["approximate"] = True
+    entry_id = r.xadd(stream, fields, **xadd_kwargs)
+    if ttl is not None:
+        r.expire(stream, ttl)
+    return entry_id
 
 
 def read_replies(stream, correlation_id, request_id, timeout, retry_strategy=None):
@@ -52,7 +61,9 @@ def read_replies(stream, correlation_id, request_id, timeout, retry_strategy=Non
 
     last_id = "0"
     while elapsed < timeout:
-        logging.debug(f"[read_replies] attempt={attempt}, elapsed={elapsed:.3f}, last_delay={last_delay}, last_id={last_id}")
+        logging.debug(
+            f"[read_replies] attempt={attempt}, elapsed={elapsed:.3f}, last_delay={last_delay}, last_id={last_id}"
+        )
         resp = r.xreadgroup(
             group_name,
             consumer_name,
@@ -75,34 +86,46 @@ def read_replies(stream, correlation_id, request_id, timeout, retry_strategy=Non
                     continue
                 last_id = entry_id
                 status = fields.get("status")
-                logging.debug(f"[read_replies] entry_id={entry_id}, status={status}, fields={fields}")
+                logging.debug(
+                    f"[read_replies] entry_id={entry_id}, status={status}, fields={fields}"
+                )
                 if status == "completed":
                     logging.info(f"[read_replies] completed reply: {fields}")
                     return fields
                 elif status in ("start", "progress"):
-                    logging.info(f"[read_replies] Reply status: {status}, fields: {fields}")
+                    logging.info(
+                        f"[read_replies] Reply status: {status}, fields: {fields}"
+                    )
         else:
             attempt += 1
             elapsed = time.time() - start_time
-            logging.debug(f"[read_replies] no entries, attempt={attempt}, elapsed={elapsed:.3f}")
+            logging.debug(
+                f"[read_replies] no entries, attempt={attempt}, elapsed={elapsed:.3f}"
+            )
             if retry_strategy:
                 delay = retry_strategy(attempt, elapsed, last_delay)
                 logging.debug(f"[read_replies] retry_strategy returned delay={delay}")
                 if delay is None or elapsed + delay > timeout:
-                    logging.warning(f"[read_replies] breaking retry loop: delay={delay}, elapsed={elapsed}, timeout={timeout}")
+                    logging.warning(
+                        f"[read_replies] breaking retry loop: delay={delay}, elapsed={elapsed}, timeout={timeout}"
+                    )
                     break
                 time.sleep(delay)
                 last_delay = delay
             else:
                 logging.warning("[read_replies] no retry_strategy, breaking loop")
                 break
-    logging.error(f"[read_replies] TimeoutError: No 'completed' reply received in {timeout} seconds for correlation_id={correlation_id}, request_id={request_id}")
+    logging.error(
+        f"[read_replies] TimeoutError: No 'completed' reply received in {timeout} seconds for correlation_id={correlation_id}, request_id={request_id}"
+    )
     raise TimeoutError(
         f"No 'completed' reply received in {timeout} seconds for correlation_id={correlation_id}, request_id={request_id}"
     )
 
 
-def emit_event(stream, correlation_id, saga_id, event_type, status, payload):
+def emit_event(
+    stream, correlation_id, saga_id, event_type, status, payload, maxlen=None, ttl=None
+):
     r = get_redis_client()
     fields = {
         "correlation_id": correlation_id,
@@ -112,7 +135,14 @@ def emit_event(stream, correlation_id, saga_id, event_type, status, payload):
         "payload": json.dumps(payload),
         "timestamp": str(int(time.time())),
     }
-    return r.xadd(stream, fields)
+    xadd_kwargs = {}
+    if maxlen is not None:
+        xadd_kwargs["maxlen"] = maxlen
+        xadd_kwargs["approximate"] = True
+    entry_id = r.xadd(stream, fields, **xadd_kwargs)
+    if ttl is not None:
+        r.expire(stream, ttl)
+    return entry_id
 
 
 def immediate_fail_retry(attempt, elapsed, last_delay):
@@ -127,6 +157,7 @@ def exponential_retry(initial=0.1, factor=2, max_delay=1.0, max_attempts=10):
     Factory for exponential backoff retry strategy.
     Returns a function (attempt, elapsed, last_delay) -> delay or None.
     """
+
     def strategy(attempt, elapsed, last_delay):
         if attempt > max_attempts:
             return None
@@ -135,6 +166,7 @@ def exponential_retry(initial=0.1, factor=2, max_delay=1.0, max_attempts=10):
         except OverflowError:
             return None
         return min(delay, max_delay)
+
     return strategy
 
 
@@ -143,6 +175,7 @@ def linear_retry(step=0.2, max_delay=1.0, max_attempts=10):
     Factory for linear backoff retry strategy.
     Returns a function (attempt, elapsed, last_delay) -> delay or None.
     """
+
     def strategy(attempt, elapsed, last_delay):
         if attempt > max_attempts:
             return None
@@ -151,4 +184,5 @@ def linear_retry(step=0.2, max_delay=1.0, max_attempts=10):
         except OverflowError:
             return None
         return min(delay, max_delay)
+
     return strategy
