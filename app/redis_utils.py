@@ -159,6 +159,38 @@ def emit_event(
     return entry_id
 
 
+def request_and_reply(
+    command_stream,
+    response_prefix,
+    correlation_id,
+    saga_id,
+    event_type,
+    payload,
+    timeout=30,
+):
+    """
+    Internal helper to emit a command and block for the completed reply.
+    """
+    request_id = uuid.uuid4().hex
+    traceparent = request_id
+    emit_command(
+        command_stream,
+        correlation_id,
+        saga_id,
+        event_type,
+        payload,
+        request_id=request_id,
+        traceparent=traceparent,
+    )
+    return read_replies(
+        f"{response_prefix}:{correlation_id}",
+        correlation_id,
+        request_id,
+        traceparent=traceparent,
+        timeout=timeout,
+        retry_strategy=exponential_retry(),
+    )
+
 def immediate_fail_retry(attempt, elapsed, last_delay):
     """
     Retry strategy: fail immediately, no retries.
