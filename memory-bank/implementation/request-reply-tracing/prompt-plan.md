@@ -3,17 +3,18 @@
 ## Checklist
 
 - [x] Add `read_replies` helper in `app/redis_utils.py`
-- [x] Extend `emit_command` and `emit_event` to accept `maxlen` and `ttl`  
+- [x] Extend `emit_command` and `emit_event` to accept `maxlen` and `ttl`
 - [x] Write unit tests for `read_replies` backoff, retry, and timeout
-- [x] Update `allocate_resources` task to generate `request_id`, emit with tracing metadata, and call `read_replies`  
-- [x] Write unit tests for `allocate_resources` reply handling  
-- [ ] Apply same task updates and tests to `plan_route`, `perform_exploration`, and `integrate_maps`  
-- [ ] Modify command handlers to emit multi-stage replies with full tracing fields  
-- [ ] Write unit tests for a representative handler’s multi-stage reply flow  
-- [ ] Update `command_listener.py` to propagate trace fields into handler calls and `emit_event`  
-- [ ] Write unit tests for `command_listener` metadata propagation  
-- [ ] Configure OpenTelemetry exporter for Tempo + Grafana and wrap `emit_command`/`read_replies` in spans  
-- [ ] Write integration tests (via `scripts/integration-tests.sh`) for full saga sunny-day flow and verify trace fields  
+- [x] Implement all request-reply tasks (`allocate_resources`, `plan_route`, `perform_exploration`, `integrate_maps`) using generic `request_and_reply`
+- [x] Write unified unit tests for all request-reply tasks in `test_tasks_request_reply.py`
+- [ ] Modify command handlers to emit multi-stage replies with full tracing fields
+- [ ] Write unit tests for a handler’s multi-stage reply flow
+- [ ] Update `command_listener.py` to propagate tracing metadata
+- [ ] Write unit tests for `command_listener` metadata propagation
+- [ ] Configure OpenTelemetry exporter for Tempo + Grafana and wrap `emit_command`/`read_replies` in spans
+- [ ] Write integration tests (via `scripts/integration-tests.sh`) for full saga sunny-day flow and verify trace fields
+- [ ] Centralize configuration defaults and update README
+- [ ] Verify zero failures with `./scripts/unit-tests.sh` and `./scripts/integration-tests.sh`
 
 ---
 
@@ -38,19 +39,12 @@ Guidance: Update signatures to include `maxlen=None, ttl=None`, apply `XADD MAXL
 Test: Write unit tests that emit to a temporary Redis instance, assert stream length trimming and TTL setting.  
 Integration: Enables resource-bounded streams used across commands and replies.
 
-### Prompt 3:  **Status: Partial (reply reader integrated)**
+### Prompt 3–4:  **Status: Completed (generic request-reply pattern)**
 
-Objective: Update the `allocate_resources` task to generate `request_id` and `traceparent`, emit the command, and call `read_replies`  
-Guidance: Use the `request_and_reply` helper in `app/tasks.py` to emit the command and block for the completed reply (it handles UUID generation, tracing metadata, and calling `read_replies`).
-Test: Write a unit test mocking `read_replies` to return a “start” and then a “completed” message and assert final return value includes tracing context.  
-Integration: Demonstrates end-to-end use of new utils in one task.
-
-### Prompt 4
-
-Objective: Mirror the update from Prompt 3 for `plan_route`, `perform_exploration`, and `integrate_maps`  
-Guidance: Refactor each task in `app/tasks.py` to follow the same pattern as `allocate_resources`, reusing default timeout/backoff parameters.  
-Test: Write unit tests for each task, mocking `read_replies`, verifying correct event emission and result aggregation.  
-Integration: Ensures consistency across all saga steps.
+Objective: Implement all request-reply tasks using the generic `request_and_reply` helper in `app/tasks.py`.
+Guidance: Each task emits its command and blocks for the completed reply using `request_and_reply`, which handles UUID generation, tracing metadata, and reply reading.
+Test: Unified unit tests in `test_tasks_request_reply.py` mock `request_and_reply` and verify correct event emission and reply handling for all tasks.
+Integration: Ensures DRY, consistent request-reply logic across all saga steps.
 
 ### Prompt 5
 
