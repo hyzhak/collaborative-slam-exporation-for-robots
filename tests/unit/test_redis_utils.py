@@ -38,7 +38,7 @@ def test_linear_retry_strategy():
     assert pytest.approx(strat(5, 0, 0)) == 1.0
 
 
-@patch("app.redis_utils.get_redis_client")
+@patch("app.redis_utils.replies.get_redis_client")
 def test_read_replies_immediate_fail(mock_get_client, mock_redis):
     mock_get_client.return_value = mock_redis
     mock_redis.xreadgroup.return_value = []
@@ -52,7 +52,7 @@ def test_read_replies_immediate_fail(mock_get_client, mock_redis):
         )
 
 
-@patch("app.redis_utils.get_redis_client")
+@patch("app.redis_utils.replies.get_redis_client")
 @patch("time.sleep", return_value=None)
 def test_read_replies_exponential_retry(mock_sleep, mock_get_client, mock_redis):
     mock_get_client.return_value = mock_redis
@@ -73,7 +73,7 @@ def test_read_replies_exponential_retry(mock_sleep, mock_get_client, mock_redis)
     assert result["result"] == "ok"
 
 
-@patch("app.redis_utils.get_redis_client")
+@patch("app.redis_utils.replies.get_redis_client")
 @patch("time.sleep", return_value=None)
 def test_read_replies_linear_retry(mock_sleep, mock_get_client, mock_redis):
     mock_get_client.return_value = mock_redis
@@ -99,7 +99,7 @@ def test_read_replies_linear_retry(mock_sleep, mock_get_client, mock_redis):
         assert any("completed reply" in msg for msg in calls)
 
 
-@patch("app.redis_utils.get_redis_client")
+@patch("app.redis_utils.replies.get_redis_client")
 @patch("time.sleep", return_value=None)
 def test_read_replies_timeout(mock_sleep, mock_get_client, mock_redis):
     mock_get_client.return_value = mock_redis
@@ -117,7 +117,7 @@ def test_read_replies_timeout(mock_sleep, mock_get_client, mock_redis):
 
 def test_emit_command_with_maxlen_ttl():
     mock_redis = MagicMock()
-    with patch("app.redis_utils.get_redis_client", return_value=mock_redis):
+    with patch("app.redis_utils.commands.get_redis_client", return_value=mock_redis):
         redis_utils.emit_command(
             "stream", "corr", "saga", "evt", {"a": 1}, maxlen=100, ttl=60
         )
@@ -130,7 +130,7 @@ def test_emit_command_with_maxlen_ttl():
 
 def test_emit_event_with_maxlen_ttl():
     mock_redis = MagicMock()
-    with patch("app.redis_utils.get_redis_client", return_value=mock_redis):
+    with patch("app.redis_utils.commands.get_redis_client", return_value=mock_redis):
         redis_utils.emit_event(
             "stream", "corr", "saga", "evt", "status", {"b": 2}, maxlen=50, ttl=30
         )

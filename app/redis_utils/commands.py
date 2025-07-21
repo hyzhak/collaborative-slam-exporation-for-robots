@@ -1,6 +1,7 @@
 import json
 import time
 from .client import get_redis_client
+from opentelemetry import trace
 
 def emit_command(
     stream,
@@ -29,10 +30,22 @@ def emit_command(
     if maxlen is not None:
         xadd_kwargs["maxlen"] = maxlen
         xadd_kwargs["approximate"] = True
-    entry_id = r.xadd(stream, fields, **xadd_kwargs)
-    if ttl is not None:
-        r.expire(stream, ttl)
-    return entry_id
+
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("emit_command") as span:
+        span.set_attribute("stream", stream)
+        span.set_attribute("correlation_id", correlation_id)
+        span.set_attribute("saga_id", saga_id)
+        span.set_attribute("event_type", event_type)
+        if request_id is not None:
+            span.set_attribute("request_id", request_id)
+        if traceparent is not None:
+            span.set_attribute("traceparent", traceparent)
+        entry_id = r.xadd(stream, fields, **xadd_kwargs)
+        if ttl is not None:
+            r.expire(stream, ttl)
+        span.set_attribute("entry_id", entry_id)
+        return entry_id
 
 def emit_event(
     stream, correlation_id, saga_id, event_type, status, payload, maxlen=None, ttl=None

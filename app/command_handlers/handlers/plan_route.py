@@ -7,9 +7,13 @@ EVENT_TYPE = "routing:plan"
 
 logger = logging.getLogger(__name__)
 
-def handle(fields: dict) -> None:
+from app.redis_utils.decorators import multi_stage_reply
+
+@multi_stage_reply
+def handle(fields: dict, progress) -> None:
     """
     Handle plan_route command.
     """
     logger.info("Handling plan_route command")
+    progress(0.5, {"stage": "planning"})
     time.sleep(1)
