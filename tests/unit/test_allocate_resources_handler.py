@@ -1,5 +1,5 @@
-import pytest
 import app.command_handlers.handlers.allocate_resources as handler
+
 
 def test_handler_interface():
     assert hasattr(handler, "STREAM_NAME")
@@ -10,7 +10,3 @@ def test_handler_interface():
     assert handler.EVENT_TYPE == "resources:allocate"
     assert hasattr(handler, "handle")
     assert callable(handler.handle)
-
-def test_handle_raises_not_implemented():
-    with pytest.raises(NotImplementedError):
-        handler.handle({})

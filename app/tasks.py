@@ -1,18 +1,11 @@
+from app.celery_app import celery_app
 from app.logging_config import setup_logging
-
-setup_logging()
+from app.redis_utils import request_and_reply
 
 import logging
-import uuid
-from .celery_app import celery_app
-from .redis_utils import (
-    emit_command,
-    emit_event,
-    read_replies,
-    exponential_retry,
-    request_and_reply,
-)
 
+
+setup_logging()
 logger = logging.getLogger(__name__)
 
 

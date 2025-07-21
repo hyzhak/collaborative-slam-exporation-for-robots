@@ -3,10 +3,10 @@
 ## Checklist
 
 - [x] Add `read_replies` helper in `app/redis_utils.py`
-- [ ] Extend `emit_command` and `emit_event` to accept `maxlen` and `ttl`  
+- [x] Extend `emit_command` and `emit_event` to accept `maxlen` and `ttl`  
 - [x] Write unit tests for `read_replies` backoff, retry, and timeout
-- [ ] Update `allocate_resources` task to generate `request_id`, emit with tracing metadata, and call `read_replies`  
-- [ ] Write unit tests for `allocate_resources` reply handling  
+- [x] Update `allocate_resources` task to generate `request_id`, emit with tracing metadata, and call `read_replies`  
+- [x] Write unit tests for `allocate_resources` reply handling  
 - [ ] Apply same task updates and tests to `plan_route`, `perform_exploration`, and `integrate_maps`  
 - [ ] Modify command handlers to emit multi-stage replies with full tracing fields  
 - [ ] Write unit tests for a representative handler’s multi-stage reply flow  
@@ -41,7 +41,7 @@ Integration: Enables resource-bounded streams used across commands and replies.
 ### Prompt 3:  **Status: Partial (reply reader integrated)**
 
 Objective: Update the `allocate_resources` task to generate `request_id` and `traceparent`, emit the command, and call `read_replies`  
-Guidance: In `app/tasks.py`, import `uuid`, generate `request_id`, build `traceparent`, call `emit_command` with full tracing metadata, then call `read_replies` on `resources:responses:{correlation_id}` with default timeout/backoff.  
+Guidance: Use the `request_and_reply` helper in `app/tasks.py` to emit the command and block for the completed reply (it handles UUID generation, tracing metadata, and calling `read_replies`).
 Test: Write a unit test mocking `read_replies` to return a “start” and then a “completed” message and assert final return value includes tracing context.  
 Integration: Demonstrates end-to-end use of new utils in one task.
 

@@ -1,10 +1,16 @@
+import logging
 import os
 import redis
 import time
 from celery import Celery
 
+
+logger = logging.getLogger(__name__)
+
 broker_url = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
+logger.info(f"Using broker URL: {broker_url}")
 backend_url = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
+logger.info(f"Using backend URL: {backend_url}")
 
 # Wait for Redis to be available before starting Celery
 

@@ -1,8 +1,10 @@
 services:
   unit_test:
     build: .
-    command: pytest -vv tests/unit/
+    command: pytest -vv tests/unit/ -q
     environment:
       - PYTHONPATH=/app
+      - CELERY_BROKER_URL=memory://
+      - CELERY_RESULT_BACKEND=cache+memory://
     volumes:
       - ./tests:/app/tests:ro
