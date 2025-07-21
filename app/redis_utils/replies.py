@@ -1,50 +1,8 @@
-import os
-import redis
-import json
-import time
 import uuid
+import time
 import logging
-
-REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
-REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
-
-
-def get_redis_client():
-    return redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
-
-
-def emit_command(
-    stream,
-    correlation_id,
-    saga_id,
-    event_type,
-    payload,
-    request_id=None,
-    traceparent=None,
-    maxlen=None,
-    ttl=None,
-):
-    r = get_redis_client()
-    fields = {
-        "correlation_id": correlation_id,
-        "saga_id": saga_id,
-        "event_type": event_type,
-        "payload": json.dumps(payload),
-        "timestamp": str(int(time.time())),
-    }
-    if request_id is not None:
-        fields["request_id"] = request_id
-    if traceparent is not None:
-        fields["traceparent"] = traceparent
-    xadd_kwargs = {}
-    if maxlen is not None:
-        xadd_kwargs["maxlen"] = maxlen
-        xadd_kwargs["approximate"] = True
-    entry_id = r.xadd(stream, fields, **xadd_kwargs)
-    if ttl is not None:
-        r.expire(stream, ttl)
-    return entry_id
-
+from .client import get_redis_client
+from .retries import exponential_retry
 
 def read_replies(
     stream, correlation_id, request_id, timeout, retry_strategy=None, traceparent=None
@@ -69,7 +27,7 @@ def read_replies(
     # Ensure consumer group exists
     try:
         r.xgroup_create(stream, group_name, id="0", mkstream=True)
-    except redis.exceptions.ResponseError as e:
+    except Exception as e:
         if "BUSYGROUP" not in str(e):
             raise
 
@@ -136,29 +94,6 @@ def read_replies(
         f"No 'completed' reply received in {timeout} seconds for correlation_id={correlation_id}, request_id={request_id}"
     )
 
-
-def emit_event(
-    stream, correlation_id, saga_id, event_type, status, payload, maxlen=None, ttl=None
-):
-    r = get_redis_client()
-    fields = {
-        "correlation_id": correlation_id,
-        "saga_id": saga_id,
-        "event_type": event_type,
-        "status": status,
-        "payload": json.dumps(payload),
-        "timestamp": str(int(time.time())),
-    }
-    xadd_kwargs = {}
-    if maxlen is not None:
-        xadd_kwargs["maxlen"] = maxlen
-        xadd_kwargs["approximate"] = True
-    entry_id = r.xadd(stream, fields, **xadd_kwargs)
-    if ttl is not None:
-        r.expire(stream, ttl)
-    return entry_id
-
-
 def request_and_reply(
     command_stream,
     response_prefix,
@@ -171,6 +106,8 @@ def request_and_reply(
     """
     Internal helper to emit a command and block for the completed reply.
     """
+    import uuid
+    from .commands import emit_command
     request_id = uuid.uuid4().hex
     traceparent = request_id
     emit_command(
@@ -190,45 +127,3 @@ def request_and_reply(
         timeout=timeout,
         retry_strategy=exponential_retry(),
     )
-
-def immediate_fail_retry(attempt, elapsed, last_delay):
-    """
-    Retry strategy: fail immediately, no retries.
-    """
-    return None
-
-
-def exponential_retry(initial=0.1, factor=2, max_delay=1.0, max_attempts=10):
-    """
-    Factory for exponential backoff retry strategy.
-    Returns a function (attempt, elapsed, last_delay) -> delay or None.
-    """
-
-    def strategy(attempt, elapsed, last_delay):
-        if attempt > max_attempts:
-            return None
-        try:
-            delay = initial * (factor ** (attempt - 1))
-        except OverflowError:
-            return None
-        return min(delay, max_delay)
-
-    return strategy
-
-
-def linear_retry(step=0.2, max_delay=1.0, max_attempts=10):
-    """
-    Factory for linear backoff retry strategy.
-    Returns a function (attempt, elapsed, last_delay) -> delay or None.
-    """
-
-    def strategy(attempt, elapsed, last_delay):
-        if attempt > max_attempts:
-            return None
-        try:
-            delay = step * attempt
-        except OverflowError:
-            return None
-        return min(delay, max_delay)
-
-    return strategy
