@@ -82,3 +82,143 @@ async def test_run_command_listeners_handles_errors(monkeypatch):
 
     # xack should not be called since handler failed
     redis_client.xack.assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_run_command_listeners_event_type_filter(monkeypatch):
+    # Handler expects event_type "foo", but message has "bar"
+    async def mock_handle(fields):
+        mock_handle.called = True
+
+    mock_handle.called = False
+
+    monkeypatch.setattr(
+        "app.command_handlers.command_listener.discovery_handler_modules",
+        lambda: [
+            {
+                "name": "allocate_resources",
+                "stream": "stream3",
+                "group": "group3",
+                "event_type": "foo",
+                "handle": mock_handle,
+            }
+        ],
+    )
+
+    redis_client = MagicMock()
+    redis_client.xread_group = AsyncMock(
+        side_effect=[{"stream3": [("msgid3", {"foo": "bar", "event_type": "bar"})]}, {"stream3": []}]
+    )
+    redis_client.xack = AsyncMock()
+
+    task = asyncio.create_task(run_command_listeners(redis_client))
+    await asyncio.sleep(0.2)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    # Handler should not be called, xack should not be called
+    assert not mock_handle.called
+    redis_client.xack.assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_run_command_listeners_no_event_type(monkeypatch):
+    # Handler with event_type=None should process all messages
+    async def mock_handle(fields):
+        mock_handle.called = True
+
+    mock_handle.called = False
+
+    monkeypatch.setattr(
+        "app.command_handlers.command_listener.discovery_handler_modules",
+        lambda: [
+            {
+                "name": "integrate_maps",
+                "stream": "stream4",
+                "group": "group4",
+                "event_type": None,
+                "handle": mock_handle,
+            }
+        ],
+    )
+
+    redis_client = MagicMock()
+    redis_client.xread_group = AsyncMock(
+        side_effect=[{"stream4": [("msgid4", {"foo": "bar", "event_type": "baz"})]}, {"stream4": []}]
+    )
+    redis_client.xack = AsyncMock()
+
+    task = asyncio.create_task(run_command_listeners(redis_client))
+    await asyncio.sleep(0.2)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert mock_handle.called
+    redis_client.xack.assert_awaited_with("stream4", "group4", "msgid4")
+
+@pytest.mark.asyncio
+async def test_run_command_listeners_xread_group_args(monkeypatch):
+    # Ensure xread_group is called with correct arguments
+    async def mock_handle(fields):
+        pass
+
+    monkeypatch.setattr(
+        "app.command_handlers.command_listener.discovery_handler_modules",
+        lambda: [
+            {
+                "name": "plan_route",
+                "stream": "stream5",
+                "group": "group5",
+                "event_type": None,
+                "handle": mock_handle,
+            }
+        ],
+    )
+
+    redis_client = MagicMock()
+    redis_client.xread_group = AsyncMock(
+        side_effect=[{"stream5": [("msgid5", {"foo": "bar"})]}, {"stream5": []}]
+    )
+    redis_client.xack = AsyncMock()
+
+    task = asyncio.create_task(run_command_listeners(redis_client))
+    await asyncio.sleep(0.2)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    redis_client.xread_group.assert_any_await(
+        "group5",
+        "listener",
+        streams={"stream5": ">"},
+        count=10,
+        latest_ids=None,
+        timeout=1000,
+    )
+
+@pytest.mark.asyncio
+async def test_run_command_listeners_missing_metadata(monkeypatch):
+    # Handler missing stream, group, or handle should be ignored
+    monkeypatch.setattr(
+        "app.command_handlers.command_listener.discovery_handler_modules",
+        lambda: [
+            {
+                "name": "bad_handler",
+                "stream": None,
+                "group": "group6",
+                "event_type": None,
+                "handle": None,
+            }
+        ],
+    )
+
+    redis_client = MagicMock()
+    redis_client.xread_group = AsyncMock()
+    redis_client.xack = AsyncMock()
+
+    task = asyncio.create_task(run_command_listeners(redis_client))
+    await asyncio.sleep(0.2)
+    # Await task directly, do not expect CancelledError
+    await task
+
+    redis_client.xread_group.assert_not_awaited()
