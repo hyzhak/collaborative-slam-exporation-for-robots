@@ -1,5 +1,5 @@
 import os
-import redis
+import redis.asyncio as redis
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
