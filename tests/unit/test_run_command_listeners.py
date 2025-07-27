@@ -215,10 +215,11 @@ async def test_run_command_listeners_missing_metadata(monkeypatch):
     redis_client.xgroup_create = AsyncMock()
     redis_client.xreadgroup = AsyncMock()
     redis_client.xack = AsyncMock()
+    # Patch close to be awaitable to match production logic
+    redis_client.close = AsyncMock()
 
     task = asyncio.create_task(run_command_listeners(redis_client))
     await asyncio.sleep(0.2)
-    # Await task directly, do not expect CancelledError
     await task
 
     redis_client.xreadgroup.assert_not_awaited()
