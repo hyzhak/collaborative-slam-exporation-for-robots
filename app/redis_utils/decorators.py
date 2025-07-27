@@ -1,6 +1,9 @@
 import functools
 import inspect
+import logging
 from .commands import emit_event
+
+logger = logging.getLogger(__name__)
 
 def multi_stage_reply(func):
     """
@@ -11,28 +14,29 @@ def multi_stage_reply(func):
     """
     @functools.wraps(func)
     async def wrapper(fields, *args, **kwargs):
+        logger.debug(f"Executing multi_stage_reply for {func.__name__} with fields: {fields}")
         reply_stream = fields.get("reply_stream")
         correlation_id = fields.get("correlation_id")
         saga_id = fields.get("saga_id")
         event_type = fields.get("event_type")
 
-        emit_args = [
-            reply_stream,
-            correlation_id,
-            saga_id,
-            event_type,
-        ]
+        emit_args = {
+            "stream": reply_stream,
+            "correlation_id": correlation_id,
+            "saga_id": saga_id,
+            "event_type": event_type,
+        }
 
         async def progress(fraction: float, payload: dict = None):
             await emit_event(
-                *emit_args,
+                **emit_args,
                 status="progress",
                 payload={"fraction": fraction, **(payload or {})},
             )
 
         # Emit start event
         await emit_event(
-            *emit_args,
+            **emit_args,
             status="start",
             payload={},
         )
@@ -51,7 +55,7 @@ def multi_stage_reply(func):
                 else:
                     completed_payload = {"result": result}
             await emit_event(
-                *emit_args,
+                **emit_args,
                 status="completed",
                 payload=completed_payload,
             )
@@ -59,7 +63,7 @@ def multi_stage_reply(func):
         except Exception as e:
             # Emit failed event
             await emit_event(
-                *emit_args,
+                **emit_args,
                 status="failed",
                 payload={"error": str(e)},
             )
