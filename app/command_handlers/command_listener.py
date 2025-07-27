@@ -2,6 +2,7 @@ import importlib
 import pkgutil
 import asyncio
 import logging
+import signal
 
 from app.logging_config import setup_logging
 from app.redis_utils.client import get_redis_client
@@ -9,6 +10,8 @@ from app.redis_utils.client import get_redis_client
 setup_logging()
 
 logger = logging.getLogger(__name__)
+
+shutdown_event = asyncio.Event()
 
 def discovery_handler_modules():
     """
@@ -41,7 +44,7 @@ def discovery_handler_modules():
     logger.debug(f"Discovered {len(handlers)} handler modules")
     return handlers
 
-async def run_command_listeners(redis_client=None):
+async def run_command_listeners(redis_client=None, shutdown_event=shutdown_event):
     """
     Asynchronously listen to each handler's stream and process messages.
     Assumes aioredis backend and async handler functions.
@@ -57,7 +60,7 @@ async def run_command_listeners(redis_client=None):
         name = handler["name"]
         stream = handler["stream"]
         group = handler["group"]
-        event_type = handler.get("event_type")
+        event_type = handler["event_type"]
         handle_fn = handler["handle"]
         if not (stream and group and handle_fn):
             logger.warning("Skipping handler %s due to incomplete metadata", name)
@@ -81,7 +84,7 @@ async def run_command_listeners(redis_client=None):
                 raise
 
         logger.info(f"Handler {name} listening on stream '{stream}', group '{group}'")
-        while True:
+        while not shutdown_event.is_set():
             try:
                 logger.debug(f"xreadgroup: group={group}, consumer=listener, stream={stream}")
                 entries = await redis_client.xreadgroup(
@@ -99,9 +102,10 @@ async def run_command_listeners(redis_client=None):
                             continue
                         logger.info(f"Invoking handler {name} for message {msg_id}")
                         try:
+                            logger.debug(f"Handling message {msg_id} on stream {stream} and event_type {event_type} with fields: {fields}")
                             await handle_fn(fields)
                             await redis_client.xack(stream, group, msg_id)
-                            logger.info(f"Acked message {msg_id} on stream {stream}")
+                            logger.info(f"Acked message {msg_id} on stream {stream} and event_type {event_type}")
                         except Exception as e:
                             logger.error(
                                 f"Handler {name} failed for message {msg_id}", exc_info=e
@@ -111,9 +115,25 @@ async def run_command_listeners(redis_client=None):
                     f"Listener error in handler {name} for stream {stream}", exc_info=e
                 )
             await asyncio.sleep(0.1)
+        logger.info(f"Handler {name} shutting down gracefully.")
 
     await asyncio.gather(*(listen_handler(h) for h in handlers))
+    await redis_client.close()
+    logger.info("All command listeners shut down gracefully.")
+
+def setup_signal_handlers(loop):
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(sig, shutdown_event.set)
+        except NotImplementedError:
+            # Signal handlers may not be implemented on Windows
+            pass
 
 if __name__ == "__main__":
     logger.info("Starting Async Command Listeners")
-    asyncio.run(run_command_listeners())
+    loop = asyncio.get_event_loop()
+    setup_signal_handlers(loop)
+    try:
+        loop.run_until_complete(run_command_listeners(shutdown_event=shutdown_event))
+    finally:
+        loop.close()
