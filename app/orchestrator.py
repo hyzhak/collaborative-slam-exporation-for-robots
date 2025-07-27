@@ -5,7 +5,6 @@ setup_logging()
 import uuid
 import logging
 from celery import chain
-from app.celery_app import celery_app
 from app.tasks import (
     allocate_resources,
     plan_route,

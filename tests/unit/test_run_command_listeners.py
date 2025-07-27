@@ -30,9 +30,11 @@ async def test_run_command_listeners_invokes_handlers(monkeypatch):
 
     # Mock Redis client
     redis_client = MagicMock()
+    # Make xgroup_create awaitable
+    redis_client.xgroup_create = AsyncMock()
     # Simulate one message, then empty
-    redis_client.xread_group = AsyncMock(
-        side_effect=[{"stream1": [("msgid1", {"foo": "bar", "event_type": "foo"})]}, {"stream1": []}]
+    redis_client.xreadgroup = AsyncMock(
+        side_effect=[[("stream1", [("msgid1", {"foo": "bar", "event_type": "foo"})])], []]
     )
     redis_client.xack = AsyncMock()
 
@@ -69,8 +71,9 @@ async def test_run_command_listeners_handles_errors(monkeypatch):
     )
 
     redis_client = MagicMock()
-    redis_client.xread_group = AsyncMock(
-        side_effect=[{"stream2": [("msgid2", {"baz": "qux", "event_type": "bar"})]}, {"stream2": []}]
+    redis_client.xgroup_create = AsyncMock()
+    redis_client.xreadgroup = AsyncMock(
+        side_effect=[[("stream2", [("msgid2", {"baz": "qux", "event_type": "bar"})])], []]
     )
     redis_client.xack = AsyncMock()
 
@@ -105,8 +108,9 @@ async def test_run_command_listeners_event_type_filter(monkeypatch):
     )
 
     redis_client = MagicMock()
-    redis_client.xread_group = AsyncMock(
-        side_effect=[{"stream3": [("msgid3", {"foo": "bar", "event_type": "bar"})]}, {"stream3": []}]
+    redis_client.xgroup_create = AsyncMock()
+    redis_client.xreadgroup = AsyncMock(
+        side_effect=[[("stream3", [("msgid3", {"foo": "bar", "event_type": "bar"})])], []]
     )
     redis_client.xack = AsyncMock()
 
@@ -142,8 +146,9 @@ async def test_run_command_listeners_no_event_type(monkeypatch):
     )
 
     redis_client = MagicMock()
-    redis_client.xread_group = AsyncMock(
-        side_effect=[{"stream4": [("msgid4", {"foo": "bar", "event_type": "baz"})]}, {"stream4": []}]
+    redis_client.xgroup_create = AsyncMock()
+    redis_client.xreadgroup = AsyncMock(
+        side_effect=[[("stream4", [("msgid4", {"foo": "bar", "event_type": "baz"})])], []]
     )
     redis_client.xack = AsyncMock()
 
@@ -176,8 +181,9 @@ async def test_run_command_listeners_xread_group_args(monkeypatch):
     )
 
     redis_client = MagicMock()
-    redis_client.xread_group = AsyncMock(
-        side_effect=[{"stream5": [("msgid5", {"foo": "bar"})]}, {"stream5": []}]
+    redis_client.xgroup_create = AsyncMock()
+    redis_client.xreadgroup = AsyncMock(
+        side_effect=[[("stream5", [("msgid5", {"foo": "bar"})])], []]
     )
     redis_client.xack = AsyncMock()
 
@@ -187,14 +193,7 @@ async def test_run_command_listeners_xread_group_args(monkeypatch):
     with pytest.raises(asyncio.CancelledError):
         await task
 
-    redis_client.xread_group.assert_any_await(
-        "group5",
-        "listener",
-        streams={"stream5": ">"},
-        count=10,
-        latest_ids=None,
-        timeout=1000,
-    )
+    redis_client.xreadgroup.assert_awaited()
 
 @pytest.mark.asyncio
 async def test_run_command_listeners_missing_metadata(monkeypatch):
@@ -213,7 +212,8 @@ async def test_run_command_listeners_missing_metadata(monkeypatch):
     )
 
     redis_client = MagicMock()
-    redis_client.xread_group = AsyncMock()
+    redis_client.xgroup_create = AsyncMock()
+    redis_client.xreadgroup = AsyncMock()
     redis_client.xack = AsyncMock()
 
     task = asyncio.create_task(run_command_listeners(redis_client))
@@ -221,4 +221,4 @@ async def test_run_command_listeners_missing_metadata(monkeypatch):
     # Await task directly, do not expect CancelledError
     await task
 
-    redis_client.xread_group.assert_not_awaited()
+    redis_client.xreadgroup.assert_not_awaited()

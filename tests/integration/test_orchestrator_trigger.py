@@ -43,7 +43,7 @@ def test_orchestrator_trigger(redis_client):
     correlation_id = "test-correlation-123"
     msg_id = redis_client.xadd(
         REDIS_STREAM,
-        {"robot_count": 2, "area": "ZoneA", "correlation_id": correlation_id}
+        {"robot_count": 2, "area": "ZoneA", "correlation_id": correlation_id, "event_type": "mission:start"}
     )
 
     # Wait for orchestrator to process and emit all expected events in order

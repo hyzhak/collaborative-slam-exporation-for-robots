@@ -1,5 +1,5 @@
 import logging
-import time
+import asyncio
 from app.redis_utils.decorators import multi_stage_reply
 
 STREAM_NAME = "map:commands"
@@ -9,10 +9,10 @@ EVENT_TYPE = "map:integrate"
 logger = logging.getLogger(__name__)
 
 @multi_stage_reply
-def handle(fields: dict, progress) -> None:
+async def handle(fields: dict, progress) -> None:
     """
     Handle integrate_maps command.
     """
     logger.info("Handling integrate_maps command")
-    progress(0.5, {"stage": "integrating"})
-    time.sleep(1)
+    await progress(0.5, {"stage": "integrating"})
+    await asyncio.sleep(1)

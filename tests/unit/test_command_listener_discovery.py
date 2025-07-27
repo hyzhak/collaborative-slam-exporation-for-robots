@@ -3,7 +3,6 @@ import types
 import pytest
 from app.command_handlers.command_listener import discovery_handler_modules
 
-
 @pytest.fixture(autouse=True)
 def mock_handlers(monkeypatch):
     # Create a dummy app.command_handlers.handlers package
@@ -19,12 +18,14 @@ def mock_handlers(monkeypatch):
     dummy.EVENT_TYPE = "dummy:event"
     sys.modules["app.command_handlers.handlers.dummy_handler"] = dummy
 
-    # Patch pkgutil.iter_modules to simulate discovery
+    # Patch pkgutil.iter_modules to simulate discovery with ModuleInfo
+    from pkgutil import ModuleInfo
+
     def iter_modules(path):
-        return [("dummy_handler", False)]
+        return [ModuleInfo(None, "dummy_handler", False)]
 
-    monkeypatch.setattr("pkgutil.iter_modules", lambda path: iter_modules(path))
-
+    import pkgutil
+    monkeypatch.setattr(pkgutil, "iter_modules", iter_modules)
 
 def test_discovery_handler_modules_returns_metadata():
     handlers = discovery_handler_modules()

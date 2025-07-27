@@ -2,6 +2,7 @@ from app.celery_app import celery_app
 from app.logging_config import setup_logging
 from app.redis_utils import request_and_reply
 
+import asyncio
 import logging
 
 
@@ -14,14 +15,20 @@ def allocate_resources(correlation_id, saga_id, robot_count):
     logger.info(
         f"Saga[{saga_id}]: Allocating {robot_count} robots (correlation_id={correlation_id})"
     )
-    return request_and_reply(
+
+    result = asyncio.run(request_and_reply(
         "resources:commands",
         "resources:responses",
         correlation_id,
         saga_id,
         "resources:allocate",
         {"robots_allocated": robot_count},
+    ))
+
+    logger.info(
+        f"Saga[{saga_id}]: Successfully allocated {robot_count} robots (correlation_id={correlation_id})"
     )
+    return result
 
 
 @celery_app.task
@@ -29,13 +36,15 @@ def plan_route(correlation_id, saga_id, area):
     logger.info(
         f"Saga[{saga_id}]: Planning route for area {area} (correlation_id={correlation_id})"
     )
-    return request_and_reply(
-        "routing:commands",
-        "routing:responses",
-        correlation_id,
-        saga_id,
-        "routing:plan",
-        {"route": f"Route for {area}"},
+    return asyncio.run(
+        request_and_reply(
+            "routing:commands",
+            "routing:responses",
+            correlation_id,
+            saga_id,
+            "routing:plan",
+            {"route": f"Route for {area}"},
+        )
     )
 
 
@@ -44,26 +53,30 @@ def perform_exploration(correlation_id, saga_id, robot_count):
     logger.info(
         f"Saga[{saga_id}]: Performing exploration with {robot_count} robots (correlation_id={correlation_id})"
     )
-    return request_and_reply(
-        "exploration:commands",
-        "exploration:responses",
-        correlation_id,
-        saga_id,
-        "exploration:perform",
-        {"exploration_result": "success"},
+    return asyncio.run(
+        request_and_reply(
+            "exploration:commands",
+            "exploration:responses",
+            correlation_id,
+            saga_id,
+            "exploration:perform",
+            {"exploration_result": "success"},
+        )
     )
 
 
 @celery_app.task
 def integrate_maps(correlation_id, saga_id):
     logger.info(f"Saga[{saga_id}]: Integrating maps (correlation_id={correlation_id})")
-    return request_and_reply(
-        "map:commands",
-        "map:responses",
-        correlation_id,
-        saga_id,
-        "map:integrate",
-        {"final_map": "integrated_map"},
+    return asyncio.run(
+        request_and_reply(
+            "map:commands",
+            "map:responses",
+            correlation_id,
+            saga_id,
+            "map:integrate",
+            {"final_map": "integrated_map"},
+        )
     )
 
 

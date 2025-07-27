@@ -2,7 +2,9 @@ import pytest
 from unittest.mock import patch
 import app.command_handlers.handlers.release_resources as handler
 
-def test_handler_emits_multi_stage_events():
+
+@pytest.mark.asyncio
+async def test_handler_emits_multi_stage_events():
     fields = {
         "stream": "resources:commands",
         "correlation_id": "cid",
@@ -11,7 +13,7 @@ def test_handler_emits_multi_stage_events():
     }
     with patch("app.redis_utils.decorators.emit_event") as mock_emit:
         with patch("app.redis_utils.commands.get_redis_client"):
-            handler.handle(fields)
+            await handler.handle(fields)
         statuses = [call.kwargs.get("status") for call in mock_emit.call_args_list]
         assert statuses[0] == "start"
         assert "progress" in statuses

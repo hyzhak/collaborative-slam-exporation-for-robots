@@ -1,6 +1,4 @@
 import os
-from app.orchestrator import run_saga
-
 STREAM_NAME = os.environ.get("REDIS_STREAM", "mission:commands")
 GROUP_NAME = "orchestrator_group"
 EVENT_TYPE = "mission:start"
@@ -9,6 +7,8 @@ async def handle(fields):
     """
     Trigger the full saga flow in response to a mission:start event.
     """
+    from app.orchestrator import run_saga
+
     correlation_id = fields.get("correlation_id")
     if not correlation_id:
         # Missing correlation_id, nothing to do

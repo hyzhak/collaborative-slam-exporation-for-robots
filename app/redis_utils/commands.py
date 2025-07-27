@@ -1,9 +1,12 @@
 import json
+import logging
 import time
 from .client import get_redis_client
 from opentelemetry import trace
 
-def emit_command(
+logger = logging.getLogger(__name__)
+
+async def emit_command(
     stream,
     correlation_id,
     saga_id,
@@ -14,6 +17,9 @@ def emit_command(
     maxlen=None,
     ttl=None,
 ):
+    logger.info(
+        f"Emitting command: {stream}, correlation_id={correlation_id}, saga_id={saga_id}, event_type={event_type}, request_id={request_id}"
+    )
     r = get_redis_client()
     fields = {
         "correlation_id": correlation_id,
@@ -41,13 +47,13 @@ def emit_command(
             span.set_attribute("request_id", request_id)
         if traceparent is not None:
             span.set_attribute("traceparent", traceparent)
-        entry_id = r.xadd(stream, fields, **xadd_kwargs)
+        entry_id = await r.xadd(stream, fields, **xadd_kwargs)
         if ttl is not None:
-            r.expire(stream, ttl)
+            await r.expire(stream, ttl)
         span.set_attribute("entry_id", entry_id)
         return entry_id
 
-def emit_event(
+async def emit_event(
     stream, correlation_id, saga_id, event_type, status, payload, maxlen=None, ttl=None
 ):
     r = get_redis_client()
@@ -63,7 +69,7 @@ def emit_event(
     if maxlen is not None:
         xadd_kwargs["maxlen"] = maxlen
         xadd_kwargs["approximate"] = True
-    entry_id = r.xadd(stream, fields, **xadd_kwargs)
+    entry_id = await r.xadd(stream, fields, **xadd_kwargs)
     if ttl is not None:
-        r.expire(stream, ttl)
+        await r.expire(stream, ttl)
     return entry_id

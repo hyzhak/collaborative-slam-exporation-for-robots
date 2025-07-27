@@ -1,8 +1,11 @@
+from app.logging_config import setup_logging
+from celery import Celery
 import logging
 import os
 import redis
 import time
-from celery import Celery
+
+setup_logging()
 
 
 logger = logging.getLogger(__name__)
@@ -32,4 +35,6 @@ celery_app.conf.update(
     task_track_started=True,
     result_extended=True,
 )
+logger.info("Celery app configured with broker and backend")
 celery_app.autodiscover_tasks(["app"])
+logger.info("Celery tasks autodiscovered")
