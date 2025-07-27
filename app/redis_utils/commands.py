@@ -16,6 +16,7 @@ async def emit_command(
     traceparent=None,
     maxlen=None,
     ttl=None,
+    reply_stream=None,
 ):
     logger.info(
         f"Emitting command: {stream}, correlation_id={correlation_id}, saga_id={saga_id}, event_type={event_type}, request_id={request_id}"
@@ -32,6 +33,8 @@ async def emit_command(
         fields["request_id"] = request_id
     if traceparent is not None:
         fields["traceparent"] = traceparent
+    if reply_stream is not None:
+        fields["reply_stream"] = reply_stream
     xadd_kwargs = {}
     if maxlen is not None:
         xadd_kwargs["maxlen"] = maxlen

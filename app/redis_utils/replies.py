@@ -148,6 +148,7 @@ async def request_and_reply(
         saga_id,
         event_type,
         payload,
+        reply_stream=f"{response_prefix}:{correlation_id}",
         request_id=request_id,
         traceparent=traceparent,
     )

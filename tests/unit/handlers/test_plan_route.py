@@ -7,6 +7,7 @@ import app.command_handlers.handlers.plan_route as handler
 async def test_handler_emits_multi_stage_events():
     fields = {
         "stream": "route:commands",
+        "reply_stream": "route:replies:cid",
         "correlation_id": "cid",
         "saga_id": "sid",
         "event_type": "route:plan"
@@ -15,6 +16,8 @@ async def test_handler_emits_multi_stage_events():
         with patch("app.redis_utils.commands.get_redis_client"):
             await handler.handle(fields)
         statuses = [call.kwargs.get("status") for call in mock_emit.call_args_list]
+        streams = [call.args[0] for call in mock_emit.call_args_list]
+        assert streams[0] == "route:replies:cid"
         assert statuses[0] == "start"
         assert "progress" in statuses
         assert statuses[-1] == "completed"
