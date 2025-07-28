@@ -14,11 +14,15 @@ def multi_stage_reply(func):
     """
     @functools.wraps(func)
     async def wrapper(fields, *args, **kwargs):
-        logger.debug(f"Executing multi_stage_reply for {func.__name__} with fields: {fields}")
+        logger.info(f"Executing multi_stage_reply for {func.__name__} with fields: {fields}")
         reply_stream = fields.get("reply_stream")
         correlation_id = fields.get("correlation_id")
         saga_id = fields.get("saga_id")
         event_type = fields.get("event_type")
+
+        if not event_type:
+            logger.info(f"Skipping event emission for {func.__name__}: missing event_type")
+            return await func(fields, *args, **kwargs)
 
         emit_args = {
             "stream": reply_stream,
