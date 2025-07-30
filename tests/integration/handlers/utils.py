@@ -21,7 +21,7 @@ def send_command(client, stream, command_data):
     """
     return client.xadd(stream, command_data)
 
-def collect_events(client, reply_stream, group, consumer, correlation_id, timeout=10.0):
+def collect_events(client, reply_stream, group, consumer, correlation_id, timeout=5.0):
     """
     XREADGROUP from reply_stream, collecting events for the given correlation_id.
     Returns a list of status values in the order received.
@@ -45,3 +45,10 @@ def generate_ids():
     Generate unique correlation_id and saga_id.
     """
     return str(uuid.uuid4()), str(uuid.uuid4())
+
+@pytest.fixture(scope="function", autouse=True)
+def ids_mock():
+    """
+    Fixture to generate a unique correlation ID for each test.
+    """
+    return generate_ids()
