@@ -35,8 +35,8 @@ async def read_replies(
             span.set_attribute("traceparent", traceparent)
 
         r = get_redis_client()
-        group_name = f"{stream}:group"
-        consumer_name = f"reader-{uuid.uuid4().hex}"
+        group_name = f"{stream}.{request_id}.group"
+        consumer_name = f"read_replies-{request_id}"
         start_id = ">"
         attempt = 0
         elapsed = 0
@@ -78,6 +78,12 @@ async def read_replies(
                         )
                         continue
                     last_id = entry_id
+                    # Acknowledge the message in the consumer group
+                    try:
+                        await r.xack(stream, group_name, entry_id)
+                        logger.debug(f"[read_replies] acknowledged entry_id={entry_id}")
+                    except Exception as ack_err:
+                        logger.warning(f"[read_replies] failed to acknowledge entry_id={entry_id}: {ack_err}")
                     status = fields.get("status")
                     logger.debug(
                         f"[read_replies] entry_id={entry_id}, status={status}, fields={fields}"
@@ -134,31 +140,30 @@ async def request_and_reply(
     Internal helper to emit a command and block for the completed reply.
     """
 
-    print('TESTING request_and_reply')
     request_id = uuid.uuid4().hex
     traceparent = request_id
+    reply_stream = f"{response_prefix}:{request_id}"
     
     logger.info(
         f"Requesting command: {command_stream}, correlation_id={correlation_id}, saga_id={saga_id}, event_type={event_type}, request_id={request_id}"
     )
-    print(f'TESTING request_and_reply - emitting stream: {command_stream}, correlation_id={correlation_id}, saga_id={saga_id}, event_type={event_type}, request_id={request_id}')
     await emit_command(
         command_stream,
         correlation_id,
         saga_id,
         event_type,
         payload,
-        reply_stream=f"{response_prefix}:{correlation_id}",
+        reply_stream=reply_stream,
         request_id=request_id,
         traceparent=traceparent,
     )
     logger.info(
-        f"Waiting for reply: {response_prefix}:{correlation_id}, request_id={request_id}, traceparent={traceparent}"
+        f"Waiting for reply: {reply_stream}, request_id={request_id}, traceparent={traceparent}"
     )
-    print('TESTING request_and_reply - before read_replies')
+    print('Waiting for reply...')
     try:
         return await read_replies(
-            f"{response_prefix}:{correlation_id}",
+            reply_stream,
             correlation_id,
             request_id,
             timeout=timeout,

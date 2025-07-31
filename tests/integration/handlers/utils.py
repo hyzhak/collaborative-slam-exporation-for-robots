@@ -34,6 +34,11 @@ def collect_events(client, reply_stream, group, consumer, correlation_id, timeou
         for sname, messages in resp:
             for msg_id, msg in messages:
                 if msg.get("correlation_id") == correlation_id and "status" in msg:
+                    try:
+                        client.xack(reply_stream, group, msg_id)
+                        print(f"Acknowledged message {msg_id}")
+                    except Exception as ack_err:
+                        print(f"Failed to acknowledge message {msg_id}: {ack_err}")
                     events.append(msg["status"])
         if "completed" in events:
             break
