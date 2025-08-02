@@ -18,7 +18,7 @@ async def read_replies(
     stream, correlation_id, request_id, timeout, retry_strategy=None, traceparent=None
 ):
     """
-    Blocking read for reply stream using XREADGROUP.
+    Blocking read for reply stream using XREADGROUP. 
     Returns only the 'completed' reply message as a dict.
     Logs 'start' and 'progress' messages.
     Raises TimeoutError if no 'completed' reply within timeout.
@@ -47,22 +47,26 @@ async def read_replies(
         try:
             await r.xgroup_create(stream, group_name, id="0", mkstream=True)
         except Exception as e:
+            logger.warning(f"Error creating consumer group: {e}")
             if "BUSYGROUP" not in str(e):
                 raise
 
-        last_id = "0"
-        while elapsed < timeout:
-            logger.debug(
-                f"[read_replies] attempt={attempt}, elapsed={elapsed:.3f}, last_delay={last_delay}, last_id={last_id}"
-            )
+        last_id = ">"
+        while time.time() - start_time < timeout:
+            elapsed = time.time() - start_time
+            remaining = timeout - elapsed
+            # logger.debug(
+            #     f"[read_replies] attempt={attempt}, elapsed={elapsed:.3f}, last_delay={last_delay}, last_id={last_id}"
+            # )
+            block_ms = int(remaining * 1000)
             resp = await r.xreadgroup(
                 group_name,
                 consumer_name,
                 {stream: last_id},
                 count=1,
-                block=int(last_delay * 1000) if last_delay else 0,
+                block=block_ms,
             )
-            logger.debug(f"[read_replies] xreadgroup resp={resp}")
+            # logger.debug(f"[read_replies] xreadgroup resp={resp}")
             if resp:
                 _, entries = resp[0]
                 logger.debug(f"[read_replies] entries={entries}")
@@ -160,7 +164,6 @@ async def request_and_reply(
     logger.info(
         f"Waiting for reply: {reply_stream}, request_id={request_id}, traceparent={traceparent}"
     )
-    print('Waiting for reply...')
     try:
         return await read_replies(
             reply_stream,
