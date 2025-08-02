@@ -17,6 +17,5 @@ async def handle(fields: dict, progress) -> None:
     Handle allocate_resources command.
     """
     logger.info("Handling allocate_resources command")
-    print("Handling allocate_resources command")
     await progress(0.5, {"stage": "allocating"})
     await asyncio.sleep(1)

@@ -25,7 +25,7 @@ for _ in range(30):
         r.ping()
         break
     except Exception:
-        print("Waiting for Redis to be available for Celery...")
+        logger.debug("Waiting for Redis to be available for Celery...")
         time.sleep(1)
 else:
     raise RuntimeError("Redis not available after 30 seconds for Celery.")
