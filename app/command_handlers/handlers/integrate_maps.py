@@ -1,5 +1,6 @@
-import logging
 import asyncio
+import logging
+
 from app.redis_utils.decorators import multi_stage_reply
 
 STREAM_NAME = "map:commands"

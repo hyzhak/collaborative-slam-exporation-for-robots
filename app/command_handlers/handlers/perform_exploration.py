@@ -1,13 +1,12 @@
 import asyncio
 import logging
+from app.redis_utils.decorators import multi_stage_reply
 
 STREAM_NAME = "exploration:commands"
 GROUP_NAME = "exploration_handler_group"
 EVENT_TYPE = "exploration:perform"
 
 logger = logging.getLogger(__name__)
-
-from app.redis_utils.decorators import multi_stage_reply
 
 @multi_stage_reply
 async def handle(fields: dict, progress) -> None:
