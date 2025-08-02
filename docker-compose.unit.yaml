@@ -1,6 +1,8 @@
 services:
   unit_test:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     command: pytest -vv tests/unit/ -q
     environment:
       - PYTHONPATH=/app
@@ -8,3 +10,15 @@ services:
       - CELERY_RESULT_BACKEND=cache+memory://
     volumes:
       - ./tests:/app/tests:ro
+
+  lint:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: ruff check .
+    environment:
+      - PYTHONPATH=/app
+      - RUFF_CACHE_DIR=/tmp/.ruff_cache
+    volumes:
+      - .:/app:ro
+      - /tmp:/tmp

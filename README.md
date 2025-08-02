@@ -128,3 +128,32 @@ Contributions are welcome! Please follow the Conventional Commits specification 
 ## License
 
 This project is licensed under the MIT License.
+
+## Python Linting & Auto-formatting
+
+This project uses [Ruff](https://docs.astral.sh/ruff/) for linting and formatting, managed via pre-commit hooks and containerized workflows.
+
+### Linting and Unit Tests (Containerized)
+
+1. Build and run lint/unit tests using the dev image and dedicated compose file:
+
+   ```bash
+   podman-compose -f docker-compose.unit.yaml up --build lint unit_test
+   # or
+   docker-compose -f docker-compose.unit.yaml up --build lint unit_test
+   ```
+
+   - `lint` runs Ruff on the entire codebase.
+   - `unit_test` runs all unit tests with pytest.
+
+2. Dev dependencies are installed automatically in the dev image (`Dockerfile.dev`).
+
+3. Configuration is in `.ruff.toml` and `.pre-commit-config.yaml`.
+
+4. For pre-commit hooks, you may still install them inside the container if you want local staged checks:
+
+   ```bash
+   podman-compose exec unit_test pre-commit install
+   ```
+
+See `docker-compose.unit.yaml` and `Dockerfile.dev` for details.
