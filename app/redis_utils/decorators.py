@@ -10,7 +10,7 @@ def multi_stage_reply(func):
     Decorator for command handlers to emit start, progress, completed, and failed events.
     Injects a 'progress' callback if the handler accepts it.
     The 'completed' payload will include the handler's return value (if not None).
-    Emits to reply_stream if present in fields, otherwise uses stream.
+    Emits to reply_stream if present in fields, otherwise skips event emission.
     """
     @functools.wraps(func)
     async def wrapper(fields, *args, **kwargs):
@@ -20,16 +20,18 @@ def multi_stage_reply(func):
         saga_id = fields.get("saga_id")
         event_type = fields.get("event_type")
 
-        if not event_type:
-            logger.info(f"Skipping event emission for {func.__name__}: missing event_type")
+        if not reply_stream:
+            logger.info(f"Skipping event emission for {func.__name__}: missing reply_stream")
             return await func(fields, *args, **kwargs)
 
         emit_args = {
             "stream": reply_stream,
             "correlation_id": correlation_id,
-            "saga_id": saga_id,
             "event_type": event_type,
         }
+
+        if saga_id is not None:
+            emit_args["saga_id"] = saga_id
 
         async def progress(fraction: float, payload: dict = None):
             await emit_event(

@@ -53,7 +53,7 @@ def main():
                 for stream, messages in resp:
                     for msg_id, fields in messages:
                         robot_count = int(fields.get("robot_count", 2))
-                        area = fields.get("area", "ZoneA")
+                        area = fields.get("area", "ZoneB")
                         correlation_id = fields.get("correlation_id")
                         if not correlation_id:
                             logger.error("Missing correlation_id in incoming command, skipping message.")

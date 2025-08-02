@@ -1,9 +1,9 @@
+import asyncio
+import logging
+
 from app.celery_app import celery_app
 from app.logging_config import setup_logging
 from app.redis_utils import request_and_reply
-
-import asyncio
-import logging
 
 
 setup_logging()
@@ -15,20 +15,23 @@ def allocate_resources(correlation_id, saga_id, robot_count):
     logger.info(
         f"Saga[{saga_id}]: Allocating {robot_count} robots (correlation_id={correlation_id})"
     )
+    try:
+        result = asyncio.run(
+            request_and_reply(
+                "resources:commands",
+                "resources:replies",
+                correlation_id,
+                saga_id,
+                "resources:allocate",
+                {"robots_allocated": robot_count},
+                timeout=3,
+            )
+        )
+        return result
+    except Exception as e:
+        logger.error(f"RuntimeError in allocate_resources: {e}")
+        raise
 
-    result = asyncio.run(request_and_reply(
-        "resources:commands",
-        "resources:responses",
-        correlation_id,
-        saga_id,
-        "resources:allocate",
-        {"robots_allocated": robot_count},
-    ))
-
-    logger.info(
-        f"Saga[{saga_id}]: Successfully allocated {robot_count} robots (correlation_id={correlation_id})"
-    )
-    return result
 
 
 @celery_app.task
@@ -39,7 +42,7 @@ def plan_route(correlation_id, saga_id, area):
     return asyncio.run(
         request_and_reply(
             "routing:commands",
-            "routing:responses",
+            "routing:replies",
             correlation_id,
             saga_id,
             "routing:plan",
@@ -56,7 +59,7 @@ def perform_exploration(correlation_id, saga_id, robot_count):
     return asyncio.run(
         request_and_reply(
             "exploration:commands",
-            "exploration:responses",
+            "exploration:replies",
             correlation_id,
             saga_id,
             "exploration:perform",
@@ -71,7 +74,7 @@ def integrate_maps(correlation_id, saga_id):
     return asyncio.run(
         request_and_reply(
             "map:commands",
-            "map:responses",
+            "map:replies",
             correlation_id,
             saga_id,
             "map:integrate",

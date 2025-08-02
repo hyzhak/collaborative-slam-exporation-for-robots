@@ -1,3 +1,4 @@
+import asyncio
 from app.logging_config import setup_logging
 
 setup_logging()
@@ -18,7 +19,7 @@ from app.tasks import (
 logger = logging.getLogger(__name__)
 
 
-def run_saga(robot_count, area, correlation_id, fail_steps=None):
+async def run_saga(robot_count, area, correlation_id, fail_steps=None):
     """
     fail_steps: optional set/list of step names to force failure for testing, e.g. {"allocate_resources"}
     correlation_id: required, must be passed from orchestrator_listener
@@ -58,5 +59,7 @@ def run_saga(robot_count, area, correlation_id, fail_steps=None):
         release_resources.si(correlation_id, saga_id)
     )
 
-    saga_chain.apply_async()
     logger.info(f"Saga[{saga_id}]: Canvas chain dispatched with compensation.")
+    result = await asyncio.to_thread(saga_chain.apply_async, expires=1000)
+    logger.info(f"Saga[{saga_id}]: Saga dispatched, Celery job is {result}")
+    return result

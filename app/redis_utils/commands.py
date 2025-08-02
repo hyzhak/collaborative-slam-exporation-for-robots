@@ -57,22 +57,30 @@ async def emit_command(
         return entry_id
 
 async def emit_event(
-    stream, correlation_id, saga_id, event_type, status, payload, maxlen=None, ttl=None
+    stream, correlation_id, event_type, status, payload, saga_id=None,  maxlen=None, ttl=None
 ):
+    logger.info(f"Emitting event: {stream}, correlation_id={correlation_id}, saga_id={saga_id}, event_type={event_type}, status={status}")
+    if stream is None:
+        raise ValueError("Stream must be specified for emitting events")
+
     r = get_redis_client()
     fields = {
         "correlation_id": correlation_id,
-        "saga_id": saga_id,
         "event_type": event_type,
         "status": status,
         "payload": json.dumps(payload),
         "timestamp": str(int(time.time())),
     }
+    if saga_id is not None:
+        fields["saga_id"] = saga_id
     xadd_kwargs = {}
     if maxlen is not None:
         xadd_kwargs["maxlen"] = maxlen
         xadd_kwargs["approximate"] = True
     entry_id = await r.xadd(stream, fields, **xadd_kwargs)
+    logger.info(
+        f"Emitted event: {stream}, correlation_id={correlation_id}, saga_id={saga_id}, event_type={event_type}, status={status}, entry_id={entry_id}"
+    )
     if ttl is not None:
         await r.expire(stream, ttl)
     return entry_id
