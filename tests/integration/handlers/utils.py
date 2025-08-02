@@ -30,7 +30,13 @@ def collect_events(client, reply_stream, group, consumer, correlation_id, timeou
     start_time = time.time()
     print('Collecting events from stream:', reply_stream)
     while time.time() - start_time < timeout:
-        resp = client.xreadgroup(groupname=group, consumername=consumer, streams={reply_stream: ">"}, count=10, block=500)
+        resp = client.xreadgroup(
+            groupname=group,
+            consumername=consumer,
+            streams={reply_stream: ">"},
+            count=10,
+            block=500,
+        )
         for sname, messages in resp:
             for msg_id, msg in messages:
                 if msg.get("correlation_id") == correlation_id and "status" in msg:
