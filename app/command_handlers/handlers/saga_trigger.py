@@ -2,7 +2,6 @@ import logging
 import os
 
 from app.redis_utils.decorators import multi_stage_reply
-from app.redis_utils.replies import request_and_reply
 
 
 STREAM_NAME = os.environ.get("REDIS_STREAM", "mission:commands")
@@ -32,11 +31,3 @@ async def handle(fields):
     # Dispatch saga via Celery canvas
     result = await run_saga(robot_count, area, correlation_id=correlation_id)
     return result.id
-    # return await request_and_reply(
-    #     "resources:commands",
-    #     "resources:replies",
-    #     'correlation_id',
-    #     'saga_id',
-    #     "resources:allocate",
-    #     {"robots_allocated": robot_count},
-    # )

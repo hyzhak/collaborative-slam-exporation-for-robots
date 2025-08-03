@@ -1,9 +1,8 @@
-from app.redis_utils.replies import request_and_reply
 import pytest
+
+from app.redis_utils.replies import request_and_reply
 from tests.integration.handlers.utils import (
     collect_events,
-    ids_mock,
-    redis_client,
     send_command,
 )
 

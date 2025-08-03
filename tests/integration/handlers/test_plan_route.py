@@ -1,8 +1,6 @@
 import pytest
 from tests.integration.handlers.utils import (
     collect_events,
-    ids_mock,
-    redis_client,
     send_command,
 )
 

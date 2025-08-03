@@ -1,12 +1,11 @@
-from app.logging_config import setup_logging
-
-setup_logging()
-
 import os
 import time
 import logging
 import redis
 from app.orchestrator import run_saga
+from app.logging_config import setup_logging
+
+setup_logging()
 
 logger = logging.getLogger(__name__)
 

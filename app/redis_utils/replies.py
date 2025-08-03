@@ -37,7 +37,6 @@ async def read_replies(
         r = get_redis_client()
         group_name = f"{stream}.{request_id}.group"
         consumer_name = f"read_replies-{request_id}"
-        start_id = ">"
         attempt = 0
         elapsed = 0
         last_delay = 0
