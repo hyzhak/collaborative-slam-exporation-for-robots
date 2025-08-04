@@ -8,9 +8,12 @@
 
 ## Next Steps
 
-- Extend `read_replies` unit tests to cover retry strategies and timeout handling.
-- Develop additional handler modules under app/command_handlers/handlers/.
-- Extend integration tests for end-to-end command stream handling.
+1. Implement alternative orchestration approach: prototype pure async/await Python orchestration in addition to current Celery-based (see app/orchestrator.py).
+2. Find how to run integration tests without stopping the main app.
+3. Add end-to-end tracing and observability tests.
+4. Refine retry strategy metrics/logging.
+5. Configure OpenTelemetry exporter for Tempo + Grafana and wrap key operations in spans for request-reply tracing.
+6. Centralize configuration defaults (stream names, timeouts, backoff, maxlen, ttl) and update README with usage examples.
 
 ## Active Decisions and Considerations
 
