@@ -15,7 +15,7 @@
 
 ## Integration Test Orchestration
 
-- Integration tests are run in a dedicated container defined in `docker-compose.test.yaml`.
+- Integration tests are run in a dedicated container defined in `docker-compose.integration.yaml`.
 - The integration test container depends on all core services (Redis, DB, Celery worker).
 - The `tests/` directory is mounted as a volume into the integration test container, ensuring tests are always up-to-date with the codebase.
 - Tests are executed using a helper script or directly via Podman Compose or Docker Compose commands.
