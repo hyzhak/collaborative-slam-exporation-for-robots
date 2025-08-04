@@ -1,6 +1,4 @@
 import pytest
-import time
-import logging
 from unittest.mock import patch, MagicMock, AsyncMock
 from app import redis_utils
 from app.logging_config import setup_logging

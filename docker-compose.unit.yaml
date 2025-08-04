@@ -20,5 +20,5 @@ services:
       - PYTHONPATH=/app
       - RUFF_CACHE_DIR=/tmp/.ruff_cache
     volumes:
-      - .:/app:ro
+      - .:/app
       - /tmp:/tmp
