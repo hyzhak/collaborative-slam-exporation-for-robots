@@ -2,6 +2,16 @@
 
 ## Recent Milestones
 
+### 2025-08-03: Request-Reply Tracing Implementation Review
+
+- All handler integration tests exist and pass as designed. Each handler emits “start → progress → completed” as required.
+- Stream names, groups, and event types align with the original plan.
+- Integration tests in `tests/integration/handlers/` confirm correct sequence and metadata.
+- One test module per handler exists; focus is on multi-stage replies, not business logic.
+- Shared utilities in `tests/integration/handlers/utils.py` are implemented and used.
+- Assertions and file structure match the plan.
+- Remaining gaps: OpenTelemetry exporter and span-wrapping not implemented; config centralization and README update pending; manual test run required for final verification.
+
 - Removed legacy single-task Celery saga tests in favor of unified parameterized test_tasks_request_reply.py for all request-reply saga tasks.
 - Added `read_replies` helper to `app/redis_utils.py` supporting blocking reply stream reads via XREADGROUP, consumer group best practices, and pluggable retry strategies (exponential, linear, immediate fail). Updated activeContext.md and prompt plan to reflect new implementation and requirements.
 - Refactored command listener and handler discovery: moved handlers to app/command_handlers/handlers/, updated all references, and validated with passing unit tests.

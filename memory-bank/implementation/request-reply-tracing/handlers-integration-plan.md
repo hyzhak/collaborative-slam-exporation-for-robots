@@ -1,5 +1,11 @@
 # Handler Integration Tests Design
 
+**Status:** All handler integration tests exist and pass as designed.
+
+- Each handler emits “start → progress → completed” as required.
+- Stream names and groups align with plan.
+- Integration tests in tests/integration/handlers/ confirm correct sequence and metadata.
+
 ## 1. Purpose
 
 Define end-to-end integration tests that verify each command handler listens on its Redis stream and emits a “start → progress → completed” sequence against a live Redis service.
@@ -12,16 +18,29 @@ Define end-to-end integration tests that verify each command handler listens on 
 
 ## 3. Test Scope
 
+**Status:** Confirmed.
+
+- One test module per handler exists.
+- Focus is on multi-stage replies; business logic is not tested.
+
 - One test module per handler (allocate, integrate, perform, plan, release).
 - Focus on multi-stage replies only; business logic verification (e.g., sleep) is out of scope.
 
 ## 4. Shared Utilities (`tests/integration/handlers/utils.py`)
+
+**Status:** Confirmed.
+
+- Utilities implemented and used in all handler integration tests.
 
 - `redis_client` fixture (synchronous `redis.Redis`).
 - `send_command(stream, event_type, correlation_id, saga_id, extra_fields=None)`: XADD command stream.
 - `collect_events(stream, group, correlation_id, expected_statuses, timeout)`: XREADGROUP loop collecting statuses.
 
 ## 5. Stream & Handler Matrix
+
+**Status:** Confirmed.
+
+- Stream names, groups, and event types match implementation.
 
 | Handler             | Stream               | Group                     | Event Type          |
 | ------------------- | -------------------- | ------------------------- | ------------------- |
@@ -33,6 +52,11 @@ Define end-to-end integration tests that verify each command handler listens on 
 
 ## 6. Test Flow (per module)
 
+**Status:** Confirmed.
+
+- Integration tests use dedicated consumer groups and unique IDs.
+- Sequence and assertions match plan.
+
 1. Create a dedicated consumer group for reply stream (e.g., `<stream>:integration_test_group`) to avoid interference with groups used by the orchestrator or listeners.
 2. Generate unique `correlation_id`, `saga_id`.
 3. Call `send_command(...)`.
@@ -41,11 +65,19 @@ Define end-to-end integration tests that verify each command handler listens on 
 
 ## 7. Assertions
 
+**Status:** Confirmed.
+
+- All assertions implemented in integration tests.
+
 - First status == “start”
 - At least one progress with `fraction` > 0 and ≤ 1
 - Final status == “completed”
 
 ## 8. File Structure
+
+**Status:** Confirmed.
+
+- File structure matches implementation.
 
 ```
 memory-bank/implementation/request-reply-tracing/
