@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-import app.command_handlers.handlers.integrate_maps as handler
+import app.commands.handlers.integrate_maps as handler
 
 
 @pytest.mark.asyncio

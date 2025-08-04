@@ -1,4 +1,4 @@
-import app.command_handlers.handlers.allocate_resources as handler
+import app.commands.handlers.allocate_resources as handler
 
 
 def test_handler_interface():

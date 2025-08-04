@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-import app.command_handlers.handlers.allocate_resources as handler
+import app.commands.handlers.allocate_resources as handler
 
 
 @pytest.mark.asyncio

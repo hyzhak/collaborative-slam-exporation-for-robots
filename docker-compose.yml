@@ -72,7 +72,7 @@ services:
         condition: service_healthy
     environment:
       - REDIS_STREAM=mission:commands
-    command: python -m app.command_handlers.command_listener
+    command: python -m app.commands.listener
     volumes:
       - ./app:/app/app
 

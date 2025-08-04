@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-import app.command_handlers.handlers.perform_exploration as handler
+import app.commands.handlers.perform_exploration as handler
 
 
 @pytest.mark.asyncio

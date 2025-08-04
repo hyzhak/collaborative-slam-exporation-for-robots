@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-import app.command_handlers.handlers.plan_route as handler
+import app.commands.handlers.plan_route as handler
 
 
 @pytest.mark.asyncio

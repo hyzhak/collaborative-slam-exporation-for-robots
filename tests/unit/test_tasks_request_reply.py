@@ -30,7 +30,7 @@ def disable_celery_registration():
 )
 def test_request_reply_tasks(monkeypatch, task_name, args, fake_response):
     # Import tasks after Celery is mocked
-    tasks = importlib.import_module("app.tasks")
+    tasks = importlib.import_module("app.flows.mission_start_celery.tasks")
 
     # Patch the request_and_reply helper to return a coroutine that yields fake_response
     async def fake_coro(*a, **k):

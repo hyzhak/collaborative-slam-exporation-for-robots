@@ -36,5 +36,5 @@ celery_app.conf.update(
     result_extended=True,
 )
 logger.info("Celery app configured with broker and backend")
-celery_app.autodiscover_tasks(["app"])
+celery_app.autodiscover_tasks(["app.flows.mission_start_celery.tasks"])
 logger.info("Celery tasks autodiscovered")

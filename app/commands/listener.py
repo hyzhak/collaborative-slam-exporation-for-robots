@@ -13,36 +13,40 @@ logger = logging.getLogger(__name__)
 
 shutdown_event = asyncio.Event()
 
+
 def discovery_handler_modules():
     """
-    Discover handler modules under app.command_handlers.handlers.
+    Discover handler modules under app.commands.handlers.
 
     Returns:
         List of dicts with keys: name, stream, group, event_type, handle
     """
     handlers = []
-    package = importlib.import_module("app.command_handlers.handlers")
+    package = importlib.import_module("app.commands.handlers")
     logger.info(f"Discovering command handler modules in {package.__name__}")
     for module_info in list(pkgutil.iter_modules(package.__path__)):
         name = module_info.name
         ispkg = module_info.ispkg
         logger.debug(f"Found module: {name}, is package: {ispkg}")
         try:
-            module = importlib.import_module(f"app.command_handlers.handlers.{name}")
+            module = importlib.import_module(f"app.commands.handlers.{name}")
             logger.debug(f"Loaded handler module: {name}")
         except ModuleNotFoundError:
             logger.warning(f"Handler module {name} not found, skipping")
             continue
         logger.debug(f"Discovered handler module: {name}")
-        handlers.append({
-            "name": name,
-            "stream": getattr(module, "STREAM_NAME", None),
-            "group": getattr(module, "GROUP_NAME", None),
-            "event_type": getattr(module, "EVENT_TYPE", None),
-            "handle": getattr(module, "handle", None),
-        })
+        handlers.append(
+            {
+                "name": name,
+                "stream": getattr(module, "STREAM_NAME", None),
+                "group": getattr(module, "GROUP_NAME", None),
+                "event_type": getattr(module, "EVENT_TYPE", None),
+                "handle": getattr(module, "handle", None),
+            }
+        )
     logger.debug(f"Discovered {len(handlers)} handler modules")
     return handlers
+
 
 async def run_command_listeners(redis_client=None, shutdown_event=shutdown_event):
     """
@@ -68,19 +72,16 @@ async def run_command_listeners(redis_client=None, shutdown_event=shutdown_event
 
         # Ensure consumer group exists before entering read loop
         try:
-            await redis_client.xgroup_create(
-                name=stream,
-                groupname=group,
-                id="$",
-                mkstream=True
-            )
+            await redis_client.xgroup_create(name=stream, groupname=group, id="$", mkstream=True)
             logger.info(f"Created consumer group '{group}' for stream '{stream}'")
         except Exception as e:
             # BUSYGROUP means group already exists
             if hasattr(e, "args") and e.args and "BUSYGROUP" in str(e.args[0]):
                 logger.info(f"Consumer group '{group}' for stream '{stream}' already exists")
             else:
-                logger.error(f"Failed to create consumer group '{group}' for stream '{stream}'", exc_info=e)
+                logger.error(
+                    f"Failed to create consumer group '{group}' for stream '{stream}'", exc_info=e
+                )
                 raise
 
         logger.info(f"Handler {name} listening on stream '{stream}', group '{group}'")
@@ -92,34 +93,37 @@ async def run_command_listeners(redis_client=None, shutdown_event=shutdown_event
                     consumername="listener",
                     block=1000,
                     count=10,
-                    streams={stream: ">"}
+                    streams={stream: ">"},
                 )
                 for stream_name, msgs in entries:
                     for msg_id, fields in msgs:
                         msg_event = fields.get("event_type")
                         if event_type and msg_event != event_type:
-                            logger.debug(f"Skipping message {msg_id} on stream {stream}: event_type '{msg_event}' != '{event_type}'")
+                            logger.debug(
+                                f"Skipping message {msg_id} on stream {stream}: event_type '{msg_event}' != '{event_type}'"
+                            )
                             continue
                         logger.info(f"Invoking handler {name} for message {msg_id}")
                         try:
-                            logger.debug(f"Handling message {msg_id} on stream {stream} and event_type {event_type} with fields: {fields}")
+                            logger.debug(
+                                f"Handling message {msg_id} on stream {stream} and event_type {event_type} with fields: {fields}"
+                            )
                             await handle_fn(fields)
                             await redis_client.xack(stream, group, msg_id)
-                            logger.info(f"Acked message {msg_id} on stream {stream} and event_type {event_type}")
-                        except Exception as e:
-                            logger.error(
-                                f"Handler {name} failed for message {msg_id}", exc_info=e
+                            logger.info(
+                                f"Acked message {msg_id} on stream {stream} and event_type {event_type}"
                             )
+                        except Exception as e:
+                            logger.error(f"Handler {name} failed for message {msg_id}", exc_info=e)
             except Exception as e:
-                logger.error(
-                    f"Listener error in handler {name} for stream {stream}", exc_info=e
-                )
+                logger.error(f"Listener error in handler {name} for stream {stream}", exc_info=e)
             await asyncio.sleep(0.1)
         logger.info(f"Handler {name} shutting down gracefully.")
 
     await asyncio.gather(*(listen_handler(h) for h in handlers))
     await redis_client.close()
     logger.info("All command listeners shut down gracefully.")
+
 
 def setup_signal_handlers(loop):
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -128,6 +132,7 @@ def setup_signal_handlers(loop):
         except NotImplementedError:
             # Signal handlers may not be implemented on Windows
             pass
+
 
 if __name__ == "__main__":
     logger.info("Starting Async Command Listeners")

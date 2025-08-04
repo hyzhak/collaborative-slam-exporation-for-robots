@@ -2,7 +2,7 @@ import asyncio
 import uuid
 import logging
 from celery import chain
-from app.tasks import (
+from app.flows.mission_start_celery.tasks import (
     allocate_resources,
     plan_route,
     perform_exploration,
