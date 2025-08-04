@@ -2,7 +2,7 @@
 
 ## 1. Background  
 
-As the number of command streams grows, a single `app/orchestrator_listener.py` becomes a bottleneck. We propose a modular, scalable approach where each command stream has its own handler and listener.
+As the number of command streams grew, the legacy `app/orchestrator_listener.py` became a bottleneck. This was replaced by a modular, scalable approach where each command stream has its own handler and listener.
 
 ## 2. Handler Abstractions  
 

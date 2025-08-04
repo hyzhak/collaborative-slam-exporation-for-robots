@@ -10,7 +10,7 @@
 - The `domain` field has been removed from all event/command emissions and function signatures for simplicity.
 - A persistent `correlation_id` is required and propagated through all events and commands, enabling tracking of related sagas.
 - Integration test (tests/test_orchestrator_trigger.py) validates that correlation_id is correctly propagated end-to-end.
-- Event-driven orchestration implemented: orchestrator service now listens to Redis Streams and triggers saga workflows via app/orchestrator_listener.py.
+- Event-driven orchestration implemented: orchestrator service now listens to Redis Streams and triggers saga workflows via modular command handlers.
 - Centralized logging configuration (app/logging_config.py) adopted across all services.
 - Saga orchestration logic refactored for event-driven flow and robust compensation (app/orchestrator.py).
 - All saga steps and compensation logic implemented as Celery tasks with improved logging (app/tasks.py).
