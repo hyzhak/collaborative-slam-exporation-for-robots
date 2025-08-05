@@ -10,13 +10,8 @@ REDIS_STREAM = "mission:commands"
 GROUP_NAME = "orchestrator_group_integration_test"
 
 
-@pytest.fixture(scope="module")
-def redis_client():
-    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
-    yield r
-
-
-def test_orchestrator_trigger(redis_client):
+@pytest.mark.parametrize("backend", ["celery", "async"])
+def test_orchestrator_trigger(redis_client, backend):
     # Ensure group exists for mission:commands
     try:
         redis_client.xgroup_create(REDIS_STREAM, GROUP_NAME, id="$", mkstream=True)
@@ -51,6 +46,7 @@ def test_orchestrator_trigger(redis_client):
             "correlation_id": correlation_id,
             "event_type": "mission:start",
             "reply_stream": f"mission:replies:{correlation_id}",
+            "backend": backend,
         },
     )
 
@@ -66,9 +62,7 @@ def test_orchestrator_trigger(redis_client):
             f"Expected one message in {stream}, got {len(downstream_msgs)}"
         )
         stream_name, messages = downstream_msgs[0]
-        assert len(messages) == 1, (
-            f"Expected one message in {stream_name}, got {len(messages)}"
-        )
+        assert len(messages) == 1, f"Expected one message in {stream_name}, got {len(messages)}"
         msg_id, fields = messages[0]
         assert fields.get("event_type") == expected_event, (
             f"Unexpected event_type: {fields.get('event_type')} (expected: {expected_event})"

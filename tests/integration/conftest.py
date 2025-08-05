@@ -1,11 +1,12 @@
 import os
-import uuid
 import pytest
 import redis
+import uuid
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
 REDIS_DB = int(os.environ.get("REDIS_DB", 0))
+
 
 @pytest.fixture(scope="session")
 def redis_client():
@@ -13,11 +14,13 @@ def redis_client():
     yield client
     client.close()
 
+
 def generate_ids():
     """
     Generate unique correlation_id and saga_id.
     """
     return str(uuid.uuid4()), str(uuid.uuid4())
+
 
 @pytest.fixture(scope="function", autouse=True)
 def ids_mock():

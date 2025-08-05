@@ -10,12 +10,13 @@ EVENT_TYPE = "mission:start"
 
 logger = logging.getLogger(__name__)
 
+
 @multi_stage_reply
 async def handle(fields):
     """
     Trigger the full saga flow in response to a mission:start event.
     """
-    
+
     logger.info(f"Handling orchestrator trigger command {fields}")
 
     from app.flows.mission_start_celery.orchestrator import run_saga
@@ -28,6 +29,16 @@ async def handle(fields):
     robot_count = int(fields.get("robot_count", 2))
     area = fields.get("area")
 
-    # Dispatch saga via Celery canvas
-    result = await run_saga(robot_count, area, correlation_id=correlation_id)
-    return result.id
+    backend = fields.get("backend", "celery")
+    if backend == "celery":
+        from app.flows.mission_start_celery.orchestrator import run_saga as celery_run_saga
+
+        result = await celery_run_saga(robot_count, area, correlation_id=correlation_id)
+        return result.id
+    elif backend == "async":
+        from app.flows.mission_start_async.orchestrator import run_saga as async_run_saga
+
+        await async_run_saga(robot_count, area, correlation_id=correlation_id)
+        return "async"
+    else:
+        raise ValueError(f"Unknown backend for mission:start: {backend}")
