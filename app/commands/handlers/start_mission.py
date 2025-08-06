@@ -19,8 +19,6 @@ async def handle(fields):
 
     logger.info(f"Handling orchestrator trigger command {fields}")
 
-    from app.flows.mission_start_celery.orchestrator import run_saga
-
     correlation_id = fields.get("correlation_id")
     if not correlation_id:
         raise ValueError("Missing correlation_id in fields")
