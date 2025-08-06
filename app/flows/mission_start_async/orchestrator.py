@@ -1,5 +1,5 @@
-import uuid
 import logging
+import uuid
 
 from app.redis_utils.replies import request_and_reply
 
