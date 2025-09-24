@@ -1,0 +1,31 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run integration tests via docker compose
+        run: |
+          set -euo pipefail
+          status=0
+          docker compose -f docker-compose.yml -f docker-compose.integration.yaml up --build --exit-code-from integration_test integration_test || status=$?
+          docker compose -f docker-compose.yml -f docker-compose.integration.yaml down -v
+          exit $status
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run unit tests via docker compose
+        run: |
+          set -euo pipefail
+          status=0
+          docker compose -f docker-compose.yml -f docker-compose.unit.yaml up --build --exit-code-from unit_test unit_test || status=$?
+          docker compose -f docker-compose.yml -f docker-compose.unit.yaml down -v
+          exit $status
