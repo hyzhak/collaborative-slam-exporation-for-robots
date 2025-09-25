@@ -1,159 +1,106 @@
 # Collaborative SLAM Exploration for Robots
 
-A proof-of-concept implementation of the Saga pattern for orchestrating multi-step, distributed workflows using Celery, Redis, PostgreSQL, and Flower. The scenario simulates collaborative SLAM (Simultaneous Localization and Mapping) exploration by multiple robots, with robust rollback (compensation) logic for failures.
+A proof-of-concept that demonstrates how Celery, Redis Streams, and async command handlers can implement the Saga pattern for collaborative robot exploration. The project coordinates mission phases—resource allocation, route planning, exploration, and map integration—while providing compensating actions and rich telemetry.
 
-## Key Features
+- **Saga orchestration:** The Celery flow builds a canvas of mission tasks with compensations using `link_error`. 【F:app/flows/mission_start_celery/orchestrator.py†L27-L50】
+- **Redis-backed services:** Celery tasks exchange commands and replies with async handlers via Redis Streams. 【F:app/flows/mission_start_celery/tasks.py†L18-L75】
+- **Async command bus:** The listener discovers handlers dynamically and manages consumer groups for each mission stream. 【F:app/commands/listener.py†L18-L109】
+- **Observability:** Flower consumes Celery events while handlers emit start/progress/completed telemetry for dashboards. 【F:docker-compose.yml†L23-L34】【F:app/redis_utils/decorators.py†L24-L55】
 
-- **Saga Pattern Orchestration:** Implements the Saga pattern using Celery to coordinate a sequence of tasks and compensations.
-- **Celery Task Queue:** Asynchronous task execution and orchestration.
-- **Redis Broker & Backend:** Fast in-memory message broker and result backend for Celery.
-- **PostgreSQL Database:** Shared persistent state for simulating service data.
-- **Flower Monitoring UI:** Real-time visualization and debugging of task flows.
-- **Docker Compose Infrastructure:** All components run as containers for easy setup and teardown.
-- **Optional FastAPI Trigger:** HTTP endpoint for starting Sagas (optional).
+Comprehensive architecture and lessons learned are available in the [`docs/`](docs) folder.
 
-## Architecture Overview
-
-- **Celery Worker:** Runs all Saga step and compensation tasks.
-- **Saga Orchestrator:** Coordinates task execution and compensation on failure.
-- **Redis:** Message broker and result backend for Celery.
-- **PostgreSQL:** Shared database for simulating persistent state.
-- **Flower:** Web UI for monitoring Celery tasks.
-- **(Optional) FastAPI:** HTTP API to trigger Saga runs.
-
-All services are defined in `docker-compose.yml` and run together on a single machine.
-
-## Prerequisites
-
-- Docker & Docker Compose (or Podman Compose)
-- Python 3.11+ (for local development/testing)
-- (Optional) Make sure ports 5432 (Postgres), 6379 (Redis), 5555 (Flower), and 8000 (API) are available.
-
-## Quick Start
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/hyzhak/collaborative-slam-exporation-for-robots.git
-   cd collaborative-slam-exporation-for-robots
-   ```
-
-2. **Build and start all services:**
-
-   ```bash
-   docker-compose up --build -d
-   ```
-
-3. **Check that all containers are running:**
-
-   ```bash
-   docker-compose ps
-   ```
-
-4. **(Optional) Initialize the database:**  
-   If your tasks require tables, create them in the Postgres container.
-
-5. **Trigger a Saga run:**
-   - **Via container (recommended):**
-
-     ```bash
-     podman-compose exec celery_worker python -m app.orchestrator 2 ZoneA
-     ```
-
-     - Adjust arguments as needed for robot count, area, or failure simulation.
-
-   - **Via API (if enabled):**  
-     Send a POST request to `/start_saga` on port 8000.
-
-6. **Monitor progress:**  
-   Open [http://localhost:5555](http://localhost:5555) to view the Flower UI.
-   Open [http://localhost:8001](http://localhost:8001) to access RedisInsight for visualizing Redis Streams and keys.
-
-## Project Structure
+## Repository Layout
 
 ```
-├── docker-compose.yml
-├── Dockerfile
-├── requirements.txt
-├── app/
-│   ├── __init__.py
-│   ├── celery_app.py      # Celery app configuration
-│   ├── tasks.py           # Saga step & compensation tasks
-│   ├── orchestrator.py    # Saga orchestration logic
-│   └── api.py             # (Optional) FastAPI app
-├── memory-bank/           # Project documentation & context
-│   ├── projectbrief.md
-│   ├── productContext.md
-│   ├── systemPatterns.md
-│   ├── techContext.md
-│   ├── activeContext.md
-│   └── progress.md
+app/
+├── celery_app.py                # Celery configuration and Redis readiness probe
+├── commands/                    # Redis stream listener and handler implementations
+├── flows/                       # Celery and async saga orchestrators
+└── redis_utils/                 # Request/reply helpers and telemetry decorators
+docker-compose.yml               # Container stack for Redis, PostgreSQL, Celery, Flower, RedisInsight
+Dockerfile                       # Runtime image for Celery worker and listener
+docs/                            # High-level architecture and lessons learned
+scripts/                         # Helper scripts for local automation
+tests/                           # Unit and integration suites (pytest)
 ```
 
-## Testing the Saga
+## Getting Started
 
-- Run the orchestrator to start a Saga.
-- Simulate failures (by parameters or randomization in tasks) to observe compensation logic.
-- Use Flower UI and logs to trace task execution and rollback steps.
-- Inspect the PostgreSQL database to verify state changes and rollbacks.
+### Prerequisites
 
-## Running Integration Tests
+- Docker and Docker Compose (v2 syntax)
+- Optional: Python 3.11+ if you wish to run tests without containers
 
-Automated integration tests are defined in `docker-compose.test.yaml` and can be run in multiple ways:
+### Launch the Stack
 
-1. Using the helper script:
-
-   ```bash
-   ./scripts/integration-tests.sh
-   ```
-
-2. With Podman Compose:
+1. Clone the repository and move into the project directory.
+2. Start all services:
 
    ```bash
-   podman-compose -f docker-compose.yml -f docker-compose.test.yaml run integration_test
+   docker compose up --build
    ```
 
-3. With Docker Compose:
+   This command launches Redis, PostgreSQL, the Celery worker, the Redis stream listener, Flower, and RedisInsight. Health checks ensure Redis is available before Celery starts. 【F:docker-compose.yml†L1-L74】
 
-   ```bash
-   docker-compose -f docker-compose.yml -f docker-compose.test.yaml up --build --exit-code-from integration_test integration_test
-   ```
+3. Watch logs for the `orchestrator` service to confirm the listener is consuming `mission:commands` events.
 
-The tests are located in the `tests/` directory and are mounted into the integration test container. A minimal sanity test is provided as `tests/test_orchestration.py`.
+### Trigger a Mission
+
+Publish a `mission:start` command to Redis Streams. The required fields are documented in the mission handler. 【F:app/commands/handlers/start_mission.py†L24-L47】
+
+```bash
+docker compose exec redis redis-cli XADD mission:commands * \
+  event_type mission:start \
+  correlation_id demo-1 \
+  robot_count 2 \
+  area ZoneA \
+  reply_stream mission:replies:demo-1 \
+  backend celery
+```
+
+Monitor Flower at [http://localhost:5555](http://localhost:5555) and RedisInsight at [http://localhost:8001](http://localhost:8001) to follow task progress and stream telemetry.
+
+### Shutting Down
+
+```bash
+docker compose down
+```
+
+Use `docker compose down -v` if you wish to remove the Postgres volume.
+
+## Testing
+
+The project ships with pytest-based unit and integration tests.
+
+- **Unit tests:** Exercise handlers, Redis utilities, and the async orchestrator. 【F:tests/unit/flow/test_async_orchestrator.py†L1-L120】【F:tests/unit/test_tasks_request_reply.py†L1-L86】
+- **Integration tests:** Interact with Redis Streams to validate end-to-end orchestration. 【F:tests/integration/test_orchestrator_trigger.py†L1-L88】
+
+Run the suites locally using the development compose file:
+
+```bash
+docker compose -f docker-compose.unit.yaml up --build lint unit_test
+```
+
+For integration testing inside containers:
+
+```bash
+./scripts/integration-tests.sh
+```
+
+Both commands rely on the dev image defined in `Dockerfile.dev` and enforce linting via Ruff.
+
+## Documentation
+
+- [High-Level Architecture](docs/high_level_design.md)
+- [Lessons Learned and Implementation Playbook](docs/lessons_learned.md)
+
+These documents contain detailed diagrams, step-by-step guidance, and testing considerations for replicating the architecture.
 
 ## Contributing
 
-Contributions are welcome! Please follow the Conventional Commits specification for commit messages.
+Contributions are welcome. Please open an issue describing the enhancement or bug before submitting a pull request, and follow the existing linting/testing workflow.
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
-## Python Linting & Auto-formatting
-
-This project uses [Ruff](https://docs.astral.sh/ruff/) for linting and formatting, managed via pre-commit hooks and containerized workflows.
-
-### Linting and Unit Tests (Containerized)
-
-1. Build and run lint/unit tests using the dev image and dedicated compose file:
-
-   ```bash
-   podman-compose -f docker-compose.unit.yaml up --build lint unit_test
-   # or
-   docker-compose -f docker-compose.unit.yaml up --build lint unit_test
-   ```
-
-   - `lint` runs Ruff on the entire codebase.
-   - `unit_test` runs all unit tests with pytest.
-
-2. Dev dependencies are installed automatically in the dev image (`Dockerfile.dev`).
-
-3. Configuration is in `.ruff.toml` and `.pre-commit-config.yaml`.
-
-4. For pre-commit hooks, you may still install them inside the container if you want local staged checks:
-
-   ```bash
-   podman-compose exec unit_test pre-commit install
-   ```
-
-See `docker-compose.unit.yaml` and `Dockerfile.dev` for details.
